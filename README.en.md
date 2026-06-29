@@ -28,7 +28,7 @@ The LLM itself runs locally (on your machine), while Fugaku focuses solely on ex
 | `fugaku_policy.py` | Safety policy (command allow/deny, path restrictions, resource limits, auditing) |
 | `setup_user.sh` | Onboarding (p12→pem, connectivity check, .mcp.json generation) |
 | `tests/` | Smoke tests, audit aggregation (`audit_report.py`) |
-| `docs/` | [Usage catalog](docs/usage-catalog.en.md) / [Agent guide (JA)](docs/agent-guide.md) / [FAQ](docs/faq.en.md) / [MCP clients](docs/clients.en.md) / [Updating](docs/updating.en.md) / [Multi-user operation](docs/multi-user.en.md) / [Safety policy](docs/security.en.md) |
+| `docs/` | [Usage catalog](docs/usage-catalog.en.md) / [Agent guide](docs/agent-guide.en.md) / [FAQ](docs/faq.en.md) / [MCP clients](docs/clients.en.md) / [Updating](docs/updating.en.md) / [Multi-user operation](docs/multi-user.en.md) / [Safety policy](docs/security.en.md) |
 
 ## Exposed tools
 | Tool | Description |
@@ -44,7 +44,7 @@ The LLM itself runs locally (on your machine), while Fugaku focuses solely on ex
 | `stage_in` / `stage_out` | File transfer to / from Fugaku |
 | `run_command` | Run lightweight commands on the login node (with policy checks) |
 | `check_update` | Check whether a fugaku-mcp update is available ([Updating](docs/updating.en.md)) |
-| `fugaku_help` | Return Fugaku usage tips and common-error remedies ([guide](docs/agent-guide.md)) |
+| `fugaku_help` | Return Fugaku usage tips and common-error remedies, `lang="en"` for English ([guide](docs/agent-guide.en.md)) |
 
 ## Setup (essentials)
 

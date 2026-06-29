@@ -124,12 +124,17 @@ def account_info() -> dict:
 
 
 @mcp.tool()
-def fugaku_help(topic: str = "") -> dict:
+def fugaku_help(topic: str = "", lang: str = "") -> dict:
     """富岳の使い方・よくあるエラーの対処を返す。ジョブの投げ方が不明なとき、
     エラー（却下/タイムアウト/権限/却下コマンド等）が起きたときに最初に参照する。
-    topic を指定すると、その語を含む見出しのセクションのみ返す（例: "エラー", "run_job", "MPI"）。"""
-    policy.audit("fugaku_help", {"topic": topic})
-    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "agent-guide.md")
+    topic を指定すると、その語を含む見出しのセクションのみ返す（例: "エラー", "run_job", "MPI"）。
+    lang="en" で英語ガイドを返す（既定は日本語）。"""
+    policy.audit("fugaku_help", {"topic": topic, "lang": lang})
+    docs = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs")
+    fname = "agent-guide.en.md" if str(lang).lower().startswith("en") else "agent-guide.md"
+    path = os.path.join(docs, fname)
+    if not os.path.isfile(path):                       # 英語版が無ければ日本語版にフォールバック
+        path = os.path.join(docs, "agent-guide.md")
     try:
         text = open(path, encoding="utf-8").read()
     except OSError:
