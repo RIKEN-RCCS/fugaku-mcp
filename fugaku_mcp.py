@@ -17,6 +17,7 @@ import os, re, time
 from mcp.server.fastmcp import FastMCP
 from fugaku_api import FugakuAPI, norm, TERMINAL
 import fugaku_policy as policy
+import fugaku_update as updater
 
 # ---- 設定（環境変数。HOME/GROUP/ACCOUNT は未指定なら証明書から自動検出） ----
 CERT    = os.environ.get("FUGAKU_CERT")
@@ -104,8 +105,19 @@ def account_info() -> dict:
     証明書から自動検出した本人情報の確認用（多ユーザー運用での取り違え防止）。"""
     c = ctx()
     policy.audit("account_info", {})
+    u = updater.cached_result()   # キャッシュのみ（低遅延）。更新情報があれば併記
     return {"account": c.get("account"), "home": c.get("home"),
-            "group": c.get("group"), "rscunit": RSCUNIT, "jobdir": jobdir()}
+            "group": c.get("group"), "rscunit": RSCUNIT, "jobdir": jobdir(),
+            "version": updater.local_version(),
+            "update_available": u.get("update_available"), "latest_version": u.get("latest")}
+
+
+@mcp.tool()
+def check_update() -> dict:
+    """fugaku-mcp の更新があるか確認する（公開リポの最新バージョンと比較）。
+    update_available が true なら、リポジトリで ./update.sh を実行して更新（更新後はクライアント再起動）。"""
+    policy.audit("check_update", {})
+    return updater.check(force=True)
 
 
 @mcp.tool()
@@ -301,4 +313,26 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"[fugaku-mcp] 本人情報の自動検出に失敗（証明書/疎通を確認）: {e}", file=sys.stderr)
     print(f"[fugaku-mcp] policy: {policy.summary()}", file=sys.stderr)
+    print(f"[fugaku-mcp] version: {updater.local_version()}", file=sys.stderr)
+
+    # オプトインの自動更新（既定OFF）。自分の富岳権限で動くコードを自動取得・実行するため要注意。
+    if os.environ.get("FUGAKU_AUTO_UPDATE") == "1":
+        try:
+            import subprocess
+            r = subprocess.run(["bash", os.path.join(os.path.dirname(os.path.abspath(__file__)), "update.sh")],
+                               capture_output=True, text=True, timeout=120)
+            print("[fugaku-mcp] auto-update:\n" + (r.stdout or "") + (r.stderr or ""), file=sys.stderr)
+            print("[fugaku-mcp] 自動更新を実行。新コードの反映には再起動が必要です。", file=sys.stderr)
+        except Exception as e:
+            print(f"[fugaku-mcp] 自動更新に失敗: {e}", file=sys.stderr)
+
+    # 更新チェック（既定: 通知のみ・非ブロッキング・best-effort）
+    def _notify_update():
+        u = updater.check()
+        if u.get("update_available"):
+            print(f"[fugaku-mcp] 🔔 新しいバージョン {u.get('latest')} があります"
+                  f"（現在 {u.get('current')}）。{u.get('how_to_update')}", file=sys.stderr)
+    import threading as _t2
+    _t2.Thread(target=_notify_update, daemon=True).start()
+
     mcp.run()

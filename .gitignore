@@ -20,3 +20,6 @@ __pycache__/
 .mcp.json
 *.log
 .DS_Store
+
+# 更新チェックのキャッシュ
+.update-cache.json

@@ -24,11 +24,11 @@ The LLM itself runs locally (on your machine), while Fugaku focuses solely on ex
 | Path | Contents |
 |---|---|
 | `fugaku_api.py` | Fugaku WebAPI client (standard library only, zero dependencies) |
-| `fugaku_mcp.py` | The MCP server itself (depends only on `mcp`), with automatic detection of the user's identity |
+| `fugaku_mcp.py` | The MCP server itself (depends only on `mcp`); auto-detects the user's identity; update check |
 | `fugaku_policy.py` | Safety policy (command allow/deny, path restrictions, resource limits, auditing) |
 | `setup_user.sh` | Onboarding (p12→pem, connectivity check, .mcp.json generation) |
 | `tests/` | Smoke tests, audit aggregation (`audit_report.py`) |
-| `docs/` | [Usage catalog](docs/usage-catalog.en.md) / [FAQ](docs/faq.en.md) / [MCP clients](docs/clients.en.md) / [Multi-user operation](docs/multi-user.en.md) / [Safety policy](docs/security.en.md) |
+| `docs/` | [Usage catalog](docs/usage-catalog.en.md) / [FAQ](docs/faq.en.md) / [MCP clients](docs/clients.en.md) / [Updating](docs/updating.en.md) / [Multi-user operation](docs/multi-user.en.md) / [Safety policy](docs/security.en.md) |
 
 ## Exposed tools
 | Tool | Description |
@@ -43,6 +43,7 @@ The LLM itself runs locally (on your machine), while Fugaku focuses solely on ex
 | `cancel_job` | Cancel a job (pjdel) |
 | `stage_in` / `stage_out` | File transfer to / from Fugaku |
 | `run_command` | Run lightweight commands on the login node (with policy checks) |
+| `check_update` | Check whether a fugaku-mcp update is available ([Updating](docs/updating.en.md)) |
 
 ## Setup (essentials)
 
