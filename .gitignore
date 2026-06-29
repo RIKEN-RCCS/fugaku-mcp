@@ -1,0 +1,22 @@
+# === 機密（絶対にコミットしない） ===
+*.pem
+*.p12
+*.pfx
+*.key
+*.crt
+session/
+*.dmp
+.env
+*token*
+
+# === Python ===
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# === ローカル設定 ===
+.mcp.json
+*.log
+.DS_Store

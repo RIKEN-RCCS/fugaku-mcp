@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "fugaku": {
+      "command": "/path/to/fugaku_mcp/.venv/bin/python",
+      "args": ["/path/to/fugaku_mcp/fugaku_mcp.py"],
+      "env": {
+        "FUGAKU_CERT": "/path/to/<account>.pem"
+      }
+    }
+  }
+}
