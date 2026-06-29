@@ -45,7 +45,30 @@ codex mcp add fugaku \
 ```
 詳細: [Codex 公式 MCP ドキュメント](https://developers.openai.com/codex/mcp)
 
-## その他のMCP対応クライアント（Cursor / VS Code / Cline / vibe系 など）
+## vibe-local
+[vibe-local](https://github.com/ochyai/vibe-local) はオフラインのAIコーディングエージェント（Python CLI・Ollama）で、
+**設定書式は Claude Code と互換**（`mcpServers` 形式のJSON）。配置場所だけが異なります:
+- グローバル: `~/.config/vibe-local/mcp.json`
+- プロジェクト: `.vibe-local/mcp.json`
+
+```json
+{
+  "mcpServers": {
+    "fugaku": {
+      "command": "/path/to/fugaku-mcp/.venv/bin/python",
+      "args": ["/path/to/fugaku-mcp/fugaku_mcp.py"],
+      "env": { "FUGAKU_CERT": "/path/to/<account>.pem" }
+    }
+  }
+}
+```
+起動時にツールが自動登録されます（`mcp_fugaku_<ツール名>` の形で参照）。
+
+> **プライバシー上の利点**: vibe-local は**ローカルLLM（Ollama）**で動くため、AIが読み取った内容
+> （ファイル本文・ジョブ出力）が**クラウドへ送られません**。機微データを富岳でやり取りする場合に有利です。
+> （Claude Code / Codex はクラウドのAIモデルへ送信されます）
+
+## その他のMCP対応クライアント（Cursor / VS Code / Cline など）
 多くは Claude Code と同じ `mcpServers` 形式のJSON、または専用UIで `command`/`args`/`env` を登録します。
 上の「3点」を各ツールの書式に合わせて記述してください。**stdio 起動・環境変数渡し**に対応していれば動作します。
 

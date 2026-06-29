@@ -45,7 +45,30 @@ codex mcp add fugaku \
 ```
 See: [Codex official MCP docs](https://developers.openai.com/codex/mcp)
 
-## Other MCP-capable clients (Cursor / VS Code / Cline / "vibe"-style tools, etc.)
+## vibe-local
+[vibe-local](https://github.com/ochyai/vibe-local) is an offline AI coding agent (Python CLI, Ollama). Its
+configuration format is **compatible with Claude Code** (`mcpServers` JSON); only the file location differs:
+- Global: `~/.config/vibe-local/mcp.json`
+- Project: `.vibe-local/mcp.json`
+
+```json
+{
+  "mcpServers": {
+    "fugaku": {
+      "command": "/path/to/fugaku-mcp/.venv/bin/python",
+      "args": ["/path/to/fugaku-mcp/fugaku_mcp.py"],
+      "env": { "FUGAKU_CERT": "/path/to/<account>.pem" }
+    }
+  }
+}
+```
+Tools are auto-discovered at startup (referenced as `mcp_fugaku_<tool>`).
+
+> **Privacy advantage**: vibe-local runs on a **local LLM (Ollama)**, so content the AI reads
+> (file contents, job output) is **not sent to the cloud**. This is beneficial when handling sensitive data
+> on Fugaku. (Claude Code / Codex send to a cloud AI model.)
+
+## Other MCP-capable clients (Cursor / VS Code / Cline, etc.)
 Most use the same `mcpServers` JSON as Claude Code, or a dedicated UI to register `command`/`args`/`env`.
 Just express the "three things" above in that tool's format. It works as long as the client can **launch a
 stdio server and pass environment variables**.
