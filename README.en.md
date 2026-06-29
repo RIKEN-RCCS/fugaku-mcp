@@ -13,8 +13,8 @@ It wraps Fugaku's official REST WebAPI (X.509 certificate authentication) and ex
 ## Architecture
 
 ```
-[AIエージェント / Claude Code]  --MCP-->  [fugaku_mcp.py]  --REST/X.509-->  富岳WebAPI  -->  富岳
-       LLM=頭脳                      薄いMCPアダプタ          (R-CCS公式)         ジョブ実行
+[AI agent / Claude Code]  --MCP-->  [fugaku_mcp.py]  --REST/X.509-->  Fugaku WebAPI  -->  Fugaku
+     LLM = the brain          thin MCP adapter        (R-CCS official)     job execution
 ```
 
 The LLM itself runs locally (on your machine), while Fugaku focuses solely on executing computations. The two are connected via certificate-backed HTTPS API calls.
@@ -48,13 +48,13 @@ The LLM itself runs locally (on your machine), while Fugaku focuses solely on ex
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install "mcp[cli]"
-openssl pkcs12 -in <account>.p12 -nodes -out <account>.pem   # cert+key 結合PEM
+openssl pkcs12 -in <account>.p12 -nodes -out <account>.pem   # combined cert+key PEM
 
-# 設定は証明書パスのみ必須（HOME/アカウント/グループは起動時に自動検出）
+# Only the certificate path is required (HOME/account/group are auto-detected at startup)
 export FUGAKU_CERT=/path/to/<account>.pem
-python test_client.py          # ツール一覧 + cluster_status で確認
+python test_client.py          # verify: lists tools + cluster_status
 
-# 新規ユーザーのオンボーディングは ↓（p12→pem・疎通確認・.mcp.json生成）
+# Onboard a new user with the script below (p12->pem, connectivity check, .mcp.json generation)
 ./setup_user.sh <account>.p12
 ```
 
