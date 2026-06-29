@@ -10,9 +10,10 @@ from mcp.client.stdio import stdio_client
 
 
 async def main():
+    server = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fugaku_mcp.py")
     params = StdioServerParameters(
         command=sys.executable,            # 同じvenvのpython
-        args=["fugaku_mcp.py"],
+        args=[server],                     # 絶対パス（どのcwdからでも起動可）
         env=os.environ.copy(),             # FUGAKU_* を引き継ぐ
     )
     async with stdio_client(params) as (read, write):

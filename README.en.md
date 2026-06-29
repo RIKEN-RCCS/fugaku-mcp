@@ -74,4 +74,4 @@ For detailed instructions see [QUICKSTART.en.md](QUICKSTART.en.md); for multi-us
 - Note: Content read by the AI assistant (file contents, job output) is sent to the AI model in order to generate responses. Take care when handling sensitive data ([docs/faq.en.md](docs/faq.en.md)).
 
 ## License
-(To be set by the repository administrator)
+[MIT License](LICENSE)

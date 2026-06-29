@@ -75,4 +75,4 @@ python test_client.py          # ツール一覧 + cluster_status で確認
 - 注意: AIアシスタントが読み取った内容（ファイル本文・ジョブ出力）は応答生成のためAIモデルに送られる。機微データの取り扱いに注意（[docs/faq.md](docs/faq.md)）。
 
 ## ライセンス
-（リポジトリ管理者が設定）
+[MIT License](LICENSE)

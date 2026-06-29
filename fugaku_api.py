@@ -57,7 +57,6 @@ class FugakuAPI:
     # --- 読み取り ---
     def status_all(self):            return self._req("GET", "/status/")
     def status(self, m=MACHINE):     return self._req("GET", f"/status/{m}")
-    def disk_usage(self, m=MACHINE): return self._req("GET", f"/status/{m}")  # ※status代用(disk APIは未確認)
     def queue(self, m=MACHINE, **q): return self._req("GET", f"/queue/{m}", params=q)
     def sacct(self, m=MACHINE, **q): return self._req("GET", f"/queue/{m}/sacct", params=q)
     def job_detail(self, jid, m=MACHINE): return self._req("GET", f"/queue/{m}/{jid}")
@@ -107,14 +106,3 @@ def norm(res):
     except Exception:
         d["raw"] = body.decode("utf-8", "replace") if isinstance(body, bytes) else str(body)
     return d
-
-
-def ok(res, *codes):
-    """HTTP成功かつ本文status!=NG（NGでも No Jobs. は空=正常として許容）。"""
-    codes = codes or (200,)
-    d = norm(res)
-    if d["http"] not in codes:
-        return False
-    if d.get("status") == "NG" and "No Jobs" not in str(d.get("error", "")):
-        return False
-    return True

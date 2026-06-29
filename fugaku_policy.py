@@ -26,7 +26,7 @@ CMD_MODE = os.environ.get("FUGAKU_CMD_MODE", "denylist").lower()
 # 明白に破壊的なパターン（denylist/allowlist両方で常に拒否）
 _DENY_PATTERNS = [
     r"\brm\s+-[a-zA-Z]*r[a-zA-Z]*f|\brm\s+-[a-zA-Z]*f[a-zA-Z]*r",  # rm -rf / -fr
-    r"\brm\b.*\s(/|~|\$HOME|/home|/vol)(\s|/|\*|$)",                # rm 対象がHOME/ルート系
+    r"\brm\b[^;&|\n]*\s(/|~|\$HOME|/home|/vol)(\s|/|\*|$)",         # rm 対象がHOME/ルート系(同一コマンド内に限定)
     r":\s*\(\s*\)\s*\{",            # フォークボム
     r"\bmkfs\b", r"\bdd\s+if=", r"\bshred\b",
     r">\s*/dev/sd", r"\bchmod\s+-R\s+0",

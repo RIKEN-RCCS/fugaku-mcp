@@ -15,7 +15,7 @@ Claude Code登録:  .mcp.json 参照
 """
 import os, re, time
 from mcp.server.fastmcp import FastMCP
-from fugaku_api import FugakuAPI, norm, TERMINAL
+from fugaku_api import FugakuAPI, norm
 import fugaku_policy as policy
 import fugaku_update as updater
 
