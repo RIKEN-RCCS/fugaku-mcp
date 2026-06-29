@@ -276,13 +276,16 @@ def run_job(commands: str, name: str = "job", nodes: int = 1, elapse: str = "00:
     """コマンド群を富岳でバッチ実行し、完了まで待って標準出力を自動回収する一括ツール。
 
     commands: 実行したいシェルコマンド（複数行可・シェバン不要）。stdout/stderr は
-              {JOBDIR}/<name>.result に集約され、完了時に content として返る。
+              {JOBDIR}/<name>.result に集約され、完了時に result として返る。
     wait_sec: 完了待ちの最大秒数。超過時は jobid を返すので後で fetch_result/job_status で確認。
+    MPIジョブ: Fujitsu MPI(PLE)は各ランクの標準出力を $HOME/output.<jobid>/ に書き出す（-std/-of は無視）。
+              run_job はこれを完了後に自動回収して mpi_output に入れる（回収後は削除）。
     その他の引数は submit_job と同じ（資源上限ポリシーが適用される）。
     """
     body = commands.split("\n", 1)[1] if commands.startswith("#!") and "\n" in commands else commands
     result = _result_path(name)
-    script = f"#!/bin/bash\n{{\n{body}\n}} > {result} 2>&1\n"
+    # cwd を $HOME に固定 → MPIランク出力 $HOME/output.<jobid>/ の場所を決定的にする
+    script = f'#!/bin/bash\ncd "$HOME"\n{{\n{body}\n}} > {result} 2>&1\n'
     policy.audit("run_job", {"name": name, "nodes": nodes, "elapse": elapse, "rscgrp": rscgrp})
 
     sub = _submit_core(script, name, nodes, elapse, rscgrp, extra_qopt)
@@ -300,8 +303,15 @@ def run_job(commands: str, name: str = "job", nodes: int = 1, elapse: str = "00:
                 "note": f"{wait_sec}秒以内に未完了。job_status('{jid}') か fetch_result('{name}') で後から確認を。"}
 
     code, data = api.download(result)
-    return {"jobid": jid, "phase": st.get("phase"), "status": st.get("status"), "result_path": result,
-            "result": data.decode("utf-8", "replace") if code == 200 else f"(結果取得失敗 http={code})"}
+    ret = {"jobid": jid, "phase": st.get("phase"), "status": st.get("status"), "result_path": result,
+           "result": data.decode("utf-8", "replace") if code == 200 else f"(結果取得失敗 http={code})"}
+    # MPIランク出力（$HOME/output.<jid>）があれば回収して片付ける
+    mpi = norm(api.command(
+        f'd="$HOME/output.{jid}"; if [ -d "$d" ]; then '
+        f'cat "$d"/*/*/stdout.* 2>/dev/null; rm -rf "$d"; fi')).get("output", "")
+    if str(mpi).strip():
+        ret["mpi_output"] = mpi
+    return ret
 
 
 @mcp.tool()

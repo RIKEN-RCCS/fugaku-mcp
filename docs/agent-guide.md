@@ -45,6 +45,10 @@
 - **複数ノードMPI**: `run_job(nodes=N, ...)` でノードを確保し、`commands` に `mpiexec -n <総プロセス> ./a.out`、
   さらに `extra_qopt='--mpi "proc=<総プロセス>"'` を付ける（総プロセス数はノード数×ノードあたりプロセス数）。
 - 例: 2ノード・1ノード4プロセス → `run_job(commands="mpiexec -n 8 ./a.out", nodes=2, elapse="00:30:00", rscgrp="small", extra_qopt='--mpi "proc=8"')`
+- **MPI出力の場所（重要）**: Fujitsu MPI(PLE)は各ランクの標準出力を `$HOME/output.<jobid>/*/*/stdout.*` に書き出す。
+  `-std`/`-of` オプションは**無視される**（`[WARN] PLE 0605` が出る）。ジョブの標準出力やシェルのリダイレクトには乗らない。
+  - `run_job` はこれを**完了後に自動回収**し、戻り値の `mpi_output` に入れる（回収後はディレクトリ削除）。通常は `run_job` を使えばよい。
+  - `submit_job`（低レベル）を使う場合は、完了後に自分で `run_command("cat $HOME/output.<jobid>/*/*/stdout.* | sort | uniq -c")` で回収する。
 - MPMD等の詳細・プロセス配置(rank)は公式マニュアル「6. MPIジョブの実行」を参照。
 
 ## コンパイル（ログインノードで run_command）
