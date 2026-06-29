@@ -62,7 +62,12 @@ configuration format is **compatible with Claude Code** (`mcpServers` JSON); onl
   }
 }
 ```
-Tools are auto-discovered at startup (referenced as `mcp_fugaku_<tool>`).
+Tools are auto-discovered at startup (referenced as `mcp_fugaku_<tool>`). Verified working (with `qwen3:8b`,
+calling `cluster_status` returned `{"status":"OK","machine":"computer"}` from Fugaku).
+
+> **Model tip**: use a model with native Ollama tool-calling to actually execute tools (`qwen3:8b` is
+> confirmed working). Some models (e.g. `qwen3-coder:30b`) emit tool calls as unparsed text and do not
+> execute them. Long, comma-heavy prompts may be split into multiple tasks, so keep requests to a short single sentence.
 
 > **Privacy advantage**: vibe-local runs on a **local LLM (Ollama)**, so content the AI reads
 > (file contents, job output) is **not sent to the cloud**. This is beneficial when handling sensitive data
