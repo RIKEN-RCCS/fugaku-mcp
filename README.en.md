@@ -28,7 +28,7 @@ The LLM itself runs locally (on your machine), while Fugaku focuses solely on ex
 | `fugaku_policy.py` | Safety policy (command allow/deny, path restrictions, resource limits, auditing) |
 | `setup_user.sh` | Onboarding (p12→pem, connectivity check, .mcp.json generation) |
 | `tests/` | Smoke tests, audit aggregation (`audit_report.py`) |
-| `docs/` | [Usage catalog](docs/usage-catalog.en.md) / [FAQ](docs/faq.en.md) / [Multi-user operation](docs/multi-user.en.md) / [Safety policy](docs/security.en.md) |
+| `docs/` | [Usage catalog](docs/usage-catalog.en.md) / [FAQ](docs/faq.en.md) / [MCP clients](docs/clients.en.md) / [Multi-user operation](docs/multi-user.en.md) / [Safety policy](docs/security.en.md) |
 
 ## Exposed tools
 | Tool | Description |
