@@ -45,6 +45,14 @@ codex mcp add fugaku \
 ```
 詳細: [Codex 公式 MCP ドキュメント](https://developers.openai.com/codex/mcp)
 
+検証済み（Codex CLI 0.142.3・gpt-5.5 で `cluster_status` を実行→富岳から `{"status":"OK","machine":"computer"}` 取得）。
+
+> **承認について**: Codex は MCPツールの実行に承認を要求する。**Codexアプリ（対話）**では実行時の
+> 承認ダイアログで許可すればよい。**非対話の `codex exec`** は既定が `approval: never` のため
+> ツール呼び出しが自動キャンセルされる。承認ポリシーを設定する（テスト用途では
+> `--dangerously-bypass-approvals-and-sandbox` で実行可能だが本番運用では非推奨）。
+> Codex はクラウドのモデルを使うため、ツールの入出力はOpenAIへ送信される点に注意。
+
 ## vibe-local
 [vibe-local](https://github.com/ochyai/vibe-local) はオフラインのAIコーディングエージェント（Python CLI・Ollama）で、
 **設定書式は Claude Code と互換**（`mcpServers` 形式のJSON）。配置場所だけが異なります:
