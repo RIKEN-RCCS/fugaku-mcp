@@ -62,6 +62,16 @@ python test_client.py          # verify: lists tools + cluster_status
 
 For detailed instructions see [QUICKSTART.en.md](QUICKSTART.en.md); for multi-user operation see [docs/multi-user.en.md](docs/multi-user.en.md).
 
+## Install as a plugin (/plugin — no manual config)
+In Claude Code you can also install via a marketplace (no hand-editing of `.mcp.json`):
+```
+/plugin marketplace add fumiyoshi-shoji/fugaku-mcp
+/plugin install fugaku@fugaku-mcp
+```
+- After installing, run `/fugaku:setup` to place your certificate (convert `.p12`→`.pem` into the plugin's data dir). Activate with `/reload-plugins` or a restart.
+- The Python dependency (`mcp`) is provisioned automatically on first launch (`plugin-run.sh` creates a venv). **Python 3.10+ required**.
+- Only the certificate is user-supplied (issued via HPCI / R-CCS).
+
 ## Prerequisites
 - A Fugaku account and an X.509 client certificate (issued via the HPCI / R-CCS portal)
 - Python 3.10+ (if installing `mcp` is difficult on 3.14, 3.12 is recommended), Claude Code

@@ -63,6 +63,16 @@ python test_client.py          # ツール一覧 + cluster_status で確認
 
 詳細な手順は [QUICKSTART.md](QUICKSTART.md)、複数人運用は [docs/multi-user.md](docs/multi-user.md) を参照。
 
+## プラグインとして導入（/plugin・手編集不要）
+Claude Code では marketplace 経由でも導入できます（`.mcp.json` の手編集が不要）:
+```
+/plugin marketplace add fumiyoshi-shoji/fugaku-mcp
+/plugin install fugaku@fugaku-mcp
+```
+- 導入後 `/fugaku:setup` で証明書を配置（`.p12`→`.pem` 変換してプラグインのデータ領域へ）。`/reload-plugins` か再起動で有効化。
+- Python依存(`mcp`)は初回起動時に自動用意されます（`plugin-run.sh` が venv を作成）。**Python 3.10+ が必要**。
+- 証明書のみ各自で用意（HPCI/R-CCS 発行）。
+
 ## 前提
 - 富岳のアカウントと X.509 クライアント証明書（HPCI/R-CCS のポータルで発行）
 - Python 3.10+（3.14で `mcp` 導入に難があれば 3.12 推奨）、Claude Code

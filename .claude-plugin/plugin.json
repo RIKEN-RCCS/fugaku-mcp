@@ -1,0 +1,21 @@
+{
+  "name": "fugaku",
+  "displayName": "Fugaku MCP",
+  "description": "スーパーコンピュータ「富岳」を自然言語で操作するMCPサーバ（公式WebAPI × X.509証明書）",
+  "version": "1.4.0",
+  "author": { "name": "Fumiyoshi Shoji", "email": "shoji@riken.jp" },
+  "homepage": "https://github.com/fumiyoshi-shoji/fugaku-mcp",
+  "repository": "https://github.com/fumiyoshi-shoji/fugaku-mcp",
+  "license": "MIT",
+  "keywords": ["hpc", "fugaku", "supercomputer", "mcp", "riken"],
+  "mcpServers": {
+    "fugaku": {
+      "type": "stdio",
+      "command": "bash",
+      "args": ["${CLAUDE_PLUGIN_ROOT}/plugin-run.sh"],
+      "env": {
+        "FUGAKU_CERT": "${CLAUDE_PLUGIN_DATA}/fugaku.pem"
+      }
+    }
+  }
+}
