@@ -1,16 +1,30 @@
 {
   "name": "fugaku-mcp",
-  "owner": { "name": "Fumiyoshi Shoji", "email": "shoji@riken.jp" },
+  "owner": {
+    "name": "Fumiyoshi Shoji",
+    "email": "shoji@riken.jp"
+  },
   "plugins": [
     {
       "name": "fugaku",
-      "source": ".",
+      "source": "./",
       "description": "スーパーコンピュータ「富岳」を自然言語で操作するMCPサーバ（公式WebAPI × X.509証明書）",
       "version": "1.4.0",
-      "author": { "name": "Fumiyoshi Shoji", "email": "shoji@riken.jp" },
+      "author": {
+        "name": "Fumiyoshi Shoji",
+        "email": "shoji@riken.jp"
+      },
       "homepage": "https://github.com/fumiyoshi-shoji/fugaku-mcp",
       "category": "infrastructure",
-      "tags": ["hpc", "fugaku", "supercomputer", "riken"]
+      "tags": [
+        "hpc",
+        "fugaku",
+        "supercomputer",
+        "riken"
+      ]
     }
-  ]
+  ],
+  "metadata": {
+    "description": "富岳MCP配布マーケットプレイス（富岳を自然言語で操作するMCPサーバ）"
+  }
 }
