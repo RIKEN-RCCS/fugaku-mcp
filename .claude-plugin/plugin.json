@@ -24,7 +24,7 @@
         "${CLAUDE_PLUGIN_ROOT}/plugin-run.sh"
       ],
       "env": {
-        "FUGAKU_CERT": "${CLAUDE_PLUGIN_DATA}/fugaku.pem"
+        "FUGAKU_CERT": "${HOME}/.fugaku/fugaku.pem"
       }
     }
   }

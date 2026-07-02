@@ -68,7 +68,7 @@ In Claude Code you can also install via a marketplace (no hand-editing of `.mcp.
 /plugin marketplace add fumiyoshi-shoji/fugaku-mcp
 /plugin install fugaku@fugaku-mcp
 ```
-- After installing, run `/fugaku:setup` to place your certificate (convert `.p12`→`.pem` into the plugin's data dir). Activate with `/reload-plugins` or a restart.
+- After installing, run `/fugaku:setup` to place your certificate (convert `.p12`→`.pem` into `~/.fugaku/fugaku.pem`). Activate with `/reload-plugins` or a restart.
 - The Python dependency (`mcp`) is provisioned automatically on first launch (`plugin-run.sh` creates a venv). **Python 3.10+ required**.
 - Only the certificate is user-supplied (issued via HPCI / R-CCS).
 
