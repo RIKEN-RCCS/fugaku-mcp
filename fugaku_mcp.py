@@ -184,9 +184,21 @@ def search_manual(query: str, lang: str = "ja", top: int = 3) -> dict:
         raw = re.sub(r"(?i)<br\s*/?>", "\n", raw)
         text = _html.unescape(re.sub(r"(?s)<[^>]+>", " ", raw))
         paras = [re.sub(r"[ \t]+", " ", p).strip() for p in re.split(r"\n\s*\n", text)]
-        matched = [p for p in paras if len(p) > 20
-                   and any(t.lower() in p.lower() for t in toks + [q])]
-        excerpt = "\n---\n".join(matched[:4])[:1500]
+        paras = [p for p in paras if p]
+        # 一致段落の位置から、直後の本文も含めた窓を抜粋（見出しだけにならないように）
+        idxs = [i for i, p in enumerate(paras) if len(p) > 8
+                and any(t.lower() in p.lower() for t in toks + [q])]
+        if idxs:
+            windows = []
+            last = -10
+            for i in idxs[:3]:
+                if i - last < 6:      # 近接する一致はまとめる
+                    continue
+                windows.append("\n".join(paras[i:i + 7]))
+                last = i
+            excerpt = ("\n…\n".join(windows))[:1800]
+        else:
+            excerpt = ""
         hits.append({"title": pg.get("title_" + lang), "url": url,
                      "excerpt": excerpt or "(一致段落なし。URLを参照)"})
         if len(hits) >= max(1, top):
