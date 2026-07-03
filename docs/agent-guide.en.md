@@ -77,6 +77,7 @@ The official standard job script example (submit with `pjsub sample.sh`):
 - Storage: `/home` (group area); for large capacity use the second tier `/vol...` (FEFS). High-speed I/O for jobs uses LLIO. For details, see the "Programming Guide (I/O)".
 
 ## When you still can't figure it out
+- **For anything not in this guide (`fugaku_help`), use `search_manual(query)` to search the official manuals** and broaden the search (returns matching excerpts and URLs; `lang="en"` for English).
 - Use `run_command` to run `module avail`, `pjacl`, `pjstat`, `ls`, etc. to inspect the environment, resources, and files in practice.
 - Refer to the official user guide / the generative AI chat AskDona (Fugaku support site) (agent integration is planned for the future).
 

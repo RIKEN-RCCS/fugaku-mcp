@@ -148,6 +148,55 @@ def fugaku_help(topic: str = "", lang: str = "") -> dict:
 
 
 @mcp.tool()
+def search_manual(query: str, lang: str = "ja", top: int = 3) -> dict:
+    """公式富岳マニュアルを検索し、該当箇所の抜粋とURLを返す。
+    fugaku_help で見つからない・より詳しい情報が要るときに範囲を広げて探す用（オンデマンド取得）。
+    query: 探したい語（日本語/英語）。 lang: "ja"（既定）/"en"。 top: 取得ページ数。"""
+    import urllib.request as _ur, html as _html
+    policy.audit("search_manual", {"query": query, "lang": lang})
+    lang = "en" if str(lang).lower().startswith("en") else "ja"
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "docs", "manual-pages.json")
+    try:
+        with open(path, encoding="utf-8") as f:
+            idx = _json.load(f)
+    except Exception:
+        return {"error": "manual-pages.json が見つかりません",
+                "manual_index": "https://www.r-ccs.riken.jp/fugaku/user-manuals/"}
+    q = query.strip()
+    toks = [t for t in re.split(r"\s+", q) if t] or [q]
+
+    def score(pg):
+        hay = ((pg.get("title_" + lang) or "") + " " + pg.get("kw", "")).lower()
+        return sum(hay.count(t.lower()) for t in toks) + (2 if q.lower() in hay else 0)
+
+    hits = []
+    for pg in sorted(idx["pages"], key=score, reverse=True):
+        if score(pg) <= 0:
+            continue
+        url = idx["guides"][pg["guide"]][lang] + pg["rel"]
+        try:
+            raw = _ur.urlopen(_ur.Request(url, headers={"User-Agent": "fugaku-mcp"}),
+                              timeout=15).read().decode("utf-8", "replace")
+        except Exception:
+            continue
+        raw = re.sub(r"(?is)<(script|style).*?</\1>", " ", raw)      # HTML→段落テキスト
+        raw = re.sub(r"(?i)</(p|div|li|h[1-6]|tr|section)>", "\n\n", raw)
+        raw = re.sub(r"(?i)<br\s*/?>", "\n", raw)
+        text = _html.unescape(re.sub(r"(?s)<[^>]+>", " ", raw))
+        paras = [re.sub(r"[ \t]+", " ", p).strip() for p in re.split(r"\n\s*\n", text)]
+        matched = [p for p in paras if len(p) > 20
+                   and any(t.lower() in p.lower() for t in toks + [q])]
+        excerpt = "\n---\n".join(matched[:4])[:1500]
+        hits.append({"title": pg.get("title_" + lang), "url": url,
+                     "excerpt": excerpt or "(一致段落なし。URLを参照)"})
+        if len(hits) >= max(1, top):
+            break
+    return {"query": q, "lang": lang, "results": hits,
+            "manual_index": idx["guides"]["use"][lang] + "index.html",
+            "note": "該当が薄い場合は manual_index か https://www.r-ccs.riken.jp/fugaku/user-manuals/ を参照。"}
+
+
+@mcp.tool()
 def check_update() -> dict:
     """fugaku-mcp の更新があるか確認する（公開リポの最新バージョンと比較）。
     update_available が true なら、リポジトリで ./update.sh を実行して更新（更新後はクライアント再起動）。"""

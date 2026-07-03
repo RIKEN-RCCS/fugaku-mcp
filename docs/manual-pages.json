@@ -1,0 +1,25 @@
+{
+  "guides": {
+    "use": {
+      "ja": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-use-1.52/build/ja/",
+      "en": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-use-1.52/build/en/"
+    },
+    "lang": {
+      "ja": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.41/build/ja/",
+      "en": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.41/build/en/"
+    }
+  },
+  "pages": [
+    {"guide": "use", "rel": "index.html", "title_ja": "利用およびジョブ実行編 目次", "title_en": "Use and job execution (index)", "kw": "index overview 目次 概要 ジョブ job"},
+    {"guide": "use", "rel": "JobExecution/Overview.html", "title_ja": "ジョブ実行 概要", "title_en": "Job Execution Overview", "kw": "ジョブ job overview 種別 種類 スクリプト script bulk step 配列"},
+    {"guide": "use", "rel": "JobExecution/NormalJob.html", "title_ja": "通常ジョブ", "title_en": "Normal Job", "kw": "通常 normal ジョブスクリプト job script #PJM 投入 submit pjsub batch バッチ"},
+    {"guide": "use", "rel": "JobExecution/pjsubCommandOptions.html", "title_ja": "ジョブ実行コマンドオプション(pjsub)", "title_en": "pjsub Command Options", "kw": "pjsub option オプション -L node rscgrp elapse -g -x -N -S 依存 depend"},
+    {"guide": "use", "rel": "JobExecution/DisplayingJobStatus.html", "title_ja": "ジョブ状態表示(pjstat)", "title_en": "Displaying Job Status", "kw": "pjstat status 状態 キュー queue 一覧 EXT QUE RUN"},
+    {"guide": "use", "rel": "JobExecution/DeletingAJobJobOperations.html", "title_ja": "ジョブ削除(pjdel)", "title_en": "Deleting a Job", "kw": "pjdel 削除 取消 cancel delete"},
+    {"guide": "use", "rel": "UsageRules/index.html", "title_ja": "利用ルール・リソース(リソースグループ)", "title_en": "Usage Rules / Resources (resource groups)", "kw": "resource group リソースグループ rscgrp small large ノード node 上限 limit quota 課金"},
+    {"guide": "use", "rel": "MPI/index.html", "title_ja": "MPIジョブの実行", "title_en": "MPI Job Execution", "kw": "MPI mpiexec 並列 parallel proc rank"},
+    {"guide": "use", "rel": "MPI/FormatOfMpiexecCommand.html", "title_ja": "mpiexecコマンドの形式", "title_en": "Format of Mpiexec Command", "kw": "mpiexec -n proc プロセス process std-proc 出力 stdout MPMD"},
+    {"guide": "use", "rel": "MPI/RankAssignment.html", "title_ja": "ランク割り当て", "title_en": "Rank Assignment", "kw": "rank ランク 割り当て assignment プロセス配置 mapping"},
+    {"guide": "lang", "rel": "index.html", "title_ja": "言語開発環境編 目次", "title_en": "Language and development environment (index)", "kw": "compiler コンパイラ fcc FCC frt mpifcc コンパイル compile 最適化 -Kfast module spack 言語"}
+  ]
+}
