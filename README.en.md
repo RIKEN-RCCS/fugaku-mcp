@@ -45,6 +45,7 @@ The LLM itself runs locally (on your machine), while Fugaku focuses solely on ex
 | `run_command` | Run lightweight commands on the login node (with policy checks) |
 | `check_update` | Check whether a fugaku-mcp update is available ([Updating](docs/updating.en.md)) |
 | `fugaku_help` | Return Fugaku usage tips and common-error remedies, `lang="en"` for English ([guide](docs/agent-guide.en.md)) |
+| `search_manual` | Search the official manuals and return matching excerpts + URLs (when `fugaku_help` is not enough) |
 
 ## Setup (essentials)
 
