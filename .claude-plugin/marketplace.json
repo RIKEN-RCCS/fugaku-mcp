@@ -1,7 +1,7 @@
 {
   "name": "fugaku-mcp",
   "owner": {
-    "name": "Fumiyoshi Shoji",
+    "name": "RIKEN Center for Computational Science (R-CCS)",
     "email": "shoji@riken.jp"
   },
   "plugins": [
