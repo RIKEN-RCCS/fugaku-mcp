@@ -16,7 +16,7 @@ Just by talking to Claude Code, you can run jobs, manage files, and check status
 
 ```bash
 # Get the tool and set up a dedicated Python environment
-git clone https://github.com/fumiyoshi-shoji/fugaku-mcp.git
+git clone https://github.com/RIKEN-RCCS/fugaku-mcp.git
 cd fugaku-mcp
 python3 -m venv .venv
 .venv/bin/pip install "mcp[cli]"

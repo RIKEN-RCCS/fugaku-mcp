@@ -65,7 +65,7 @@ For detailed instructions see [QUICKSTART.en.md](QUICKSTART.en.md); for multi-us
 ## Install as a plugin (/plugin — no manual config)
 In Claude Code you can also install via a marketplace (no hand-editing of `.mcp.json`):
 ```
-/plugin marketplace add fumiyoshi-shoji/fugaku-mcp
+/plugin marketplace add RIKEN-RCCS/fugaku-mcp
 /plugin install fugaku@fugaku-mcp
 ```
 - After installing, run `/fugaku:setup` to place your certificate (convert `.p12`→`.pem` into `~/.fugaku/fugaku.pem`). Activate with `/reload-plugins` or a restart.

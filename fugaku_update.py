@@ -13,10 +13,10 @@ import urllib.request as ur
 HERE = os.path.dirname(os.path.abspath(__file__))
 VERSION_FILE = os.path.join(HERE, "VERSION")
 CACHE_FILE = os.path.join(HERE, ".update-cache.json")
-REPO_URL = "https://github.com/fumiyoshi-shoji/fugaku-mcp"
+REPO_URL = "https://github.com/RIKEN-RCCS/fugaku-mcp"
 REMOTE_VERSION_URL = os.environ.get(
     "FUGAKU_UPDATE_URL",
-    "https://raw.githubusercontent.com/fumiyoshi-shoji/fugaku-mcp/main/VERSION")
+    "https://raw.githubusercontent.com/RIKEN-RCCS/fugaku-mcp/main/VERSION")
 TTL = 86400  # 24h
 
 

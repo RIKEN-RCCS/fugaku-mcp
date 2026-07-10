@@ -6,8 +6,8 @@
     "name": "Fumiyoshi Shoji",
     "email": "shoji@riken.jp"
   },
-  "homepage": "https://github.com/fumiyoshi-shoji/fugaku-mcp",
-  "repository": "https://github.com/fumiyoshi-shoji/fugaku-mcp",
+  "homepage": "https://github.com/RIKEN-RCCS/fugaku-mcp",
+  "repository": "https://github.com/RIKEN-RCCS/fugaku-mcp",
   "license": "MIT",
   "keywords": [
     "hpc",

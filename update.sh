@@ -8,14 +8,14 @@ echo "現在のバージョン: $(cat VERSION 2>/dev/null || echo '?')"
 
 if [ ! -d .git ]; then
   echo "git クローンではないため自動更新できません。最新版を再取得してください:" >&2
-  echo "  https://github.com/fumiyoshi-shoji/fugaku-mcp" >&2
+  echo "  https://github.com/RIKEN-RCCS/fugaku-mcp" >&2
   exit 1
 fi
 
 # origin 乗っ取り対策: 公式リポかを確認してから取得する
 origin=$(git remote get-url origin 2>/dev/null || echo "")
 case "$origin" in
-  *fumiyoshi-shoji/fugaku-mcp*) ;;
+  *RIKEN-RCCS/fugaku-mcp*|*fumiyoshi-shoji/fugaku-mcp*) ;;   # 新オーナー / 旧オーナー(リダイレクト)
   *) echo "origin が公式リポではありません（更新中止）: $origin" >&2; exit 1 ;;
 esac
 

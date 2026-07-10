@@ -66,7 +66,7 @@ python test_client.py          # ツール一覧 + cluster_status で確認
 ## プラグインとして導入（/plugin・手編集不要）
 Claude Code では marketplace 経由でも導入できます（`.mcp.json` の手編集が不要）:
 ```
-/plugin marketplace add fumiyoshi-shoji/fugaku-mcp
+/plugin marketplace add RIKEN-RCCS/fugaku-mcp
 /plugin install fugaku@fugaku-mcp
 ```
 - 導入後 `/fugaku:setup` で証明書を配置（`.p12`→`.pem` 変換して `~/.fugaku/fugaku.pem` へ）。`/reload-plugins` か再起動で有効化。
