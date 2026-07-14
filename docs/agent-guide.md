@@ -54,7 +54,8 @@
 - MPMD等の詳細・プロセス配置(rank)は公式マニュアル「6. MPIジョブの実行」を参照。
 
 ## コンパイル（ログインノードで run_command）
-- 富士通コンパイラ（A64FX最適化）: C=`fcc` / C++=`FCC` / Fortran=`frt`。MPI版=`mpifcc` / `mpiFCC` / `mpifrt`。
+- **コンパイルは必ずログインノードで、クロスコンパイラを使って行う**（計算ノードやジョブ内ではビルドしない）。`run_command` はログインノード上で動くので、ビルドは `run_command` で実行し、実行（`./a.out`）だけを `run_job` で計算ノードに投げる。
+- 富士通コンパイラ（A64FX最適化）: C=`fcc` / C++=`FCC` / Fortran=`frt`。MPI版=`mpifcc` / `mpiFCC` / `mpifrt`。いずれもログインノード上で計算ノード向けにクロスコンパイルする。
 - GCC等のクロスコンパイルも可。環境切替は `module`（や `spack`）。
 - 例: `run_command("mpifcc -Kfast -o a.out main.c")`、`run_command("module avail")`。
 - 正確なオプション・最適化（`-Kfast` 等）は公式「言語開発環境編」を参照。

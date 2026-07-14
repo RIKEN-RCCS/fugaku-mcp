@@ -53,7 +53,8 @@ The official standard job script example (submit with `pjsub sample.sh`):
 - For details such as MPMD and process placement (rank), see the official manual "6. Running MPI jobs".
 
 ## Compilation (run_command on the login node)
-- Fujitsu compilers (A64FX optimized): C=`fcc` / C++=`FCC` / Fortran=`frt`. MPI versions=`mpifcc` / `mpiFCC` / `mpifrt`.
+- **Always compile on the login node using cross-compilers** (do not build on compute nodes or inside jobs). `run_command` runs on the login node, so build with `run_command` and submit only the execution (`./a.out`) to compute nodes via `run_job`.
+- Fujitsu compilers (A64FX optimized): C=`fcc` / C++=`FCC` / Fortran=`frt`. MPI versions=`mpifcc` / `mpiFCC` / `mpifrt`. All of these cross-compile on the login node targeting the compute nodes.
 - Cross-compilation with GCC and others is also possible. Switch environments with `module` (or `spack`).
 - Examples: `run_command("mpifcc -Kfast -o a.out main.c")`, `run_command("module avail")`.
 - For exact options and optimizations (`-Kfast`, etc.), refer to the official "Language and development environment".
