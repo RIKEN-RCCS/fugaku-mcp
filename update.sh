@@ -20,7 +20,7 @@ case "$origin" in
 esac
 
 echo "== fetch =="
-git fetch --ff-only --tags origin
+git fetch --tags origin
 if [ -n "${FUGAKU_UPDATE_REF:-}" ]; then
   # 指定タグ/コミットに固定（サプライチェーン上、レビュー済みのrefに留めたい場合）
   echo "== checkout $FUGAKU_UPDATE_REF =="
@@ -39,4 +39,4 @@ if [ -x .venv/bin/pip ]; then
 fi
 
 echo
-echo "✅ 更新完了。反映するには MCPクライアント（Claude Code / Codex / vibe-local）を完全に再起動してください。"
+echo "✅ 更新完了。反映するには MCPクライアント（Claude Code / Codex / vibe-local / opencode）を完全に再起動してください。"

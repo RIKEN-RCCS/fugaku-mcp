@@ -1,7 +1,7 @@
 {
   "name": "fugaku",
   "description": "スーパーコンピュータ「富岳」を自然言語で操作するMCPサーバ（公式WebAPI × X.509証明書）",
-  "version": "1.5.2",
+  "version": "1.6.2",
   "author": {
     "name": "Fumiyoshi Shoji",
     "email": "shoji@riken.jp"
