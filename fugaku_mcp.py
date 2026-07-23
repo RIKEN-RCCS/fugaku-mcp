@@ -295,9 +295,13 @@ def _submit_core(script, name, nodes, elapse, rscgrp, extra_qopt):
 
     res = api.submit(jobfile=remote, qopt=qopt)
     d = norm(res)
-    m = re.search(r"Job (\d+) submitted", str(d.get("output", "")))
+    # ステップ/バルクジョブは "Job 71080_0 submitted"・"Job 12345[0] submitted" 形式になる
+    m = re.search(r"Job (\d+)((?:_\d+|\[\d+\])?) submitted", str(d.get("output", "")))
     if m:
-        return {"http": d["http"], "jobid": m.group(1), "output": d.get("output")}
+        ret = {"http": d["http"], "jobid": m.group(1), "output": d.get("output")}
+        if m.group(2):
+            ret["subjobid"] = m.group(1) + m.group(2)
+        return ret
     # タイムアウト等でjobid不明 → 投入は成功している可能性。名前で実行キューを照合して復旧。
     if d.get("http") is None:
         time.sleep(5)

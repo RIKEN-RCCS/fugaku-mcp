@@ -53,12 +53,46 @@
   - `submit_job`（低レベル）を使う場合は、完了後に自分で `run_command("cat $HOME/output.<jobid>/*/*/stdout.* | sort | uniq -c")` で回収する。
 - MPMD等の詳細・プロセス配置(rank)は公式マニュアル「6. MPIジョブの実行」を参照。
 
+## ジョブ配列（バルクジョブ）・依存ジョブ（ステップジョブ）
+パラメータサーベイや依存関係のあるジョブ列は pjsub の機能で実現できる。**どちらも `run_job` は使わず
+`submit_job`（低レベル）＋ `extra_qopt` で投入する**（run_job は全出力を単一の `<name>.result` に集約するため、
+複数サブジョブが同じファイルへ書いて衝突する）。
+
+### バルクジョブ（同じスクリプトをパラメータ違いで多数実行）
+- 投入: `submit_job(script=..., extra_qopt='--bulk --sparam "0-9"')` → バルク番号 0〜9 の10サブジョブ（範囲は 0〜999999）。
+- スクリプト内では環境変数 `${PJM_BULKNUM}` で自分の番号を参照し、入出力を分ける:
+  ```bash
+  #!/bin/bash
+  ./a.out < indata.${PJM_BULKNUM} > outdata.${PJM_BULKNUM} 2>&1
+  ```
+- サブジョブIDは「ジョブID[バルク番号]」形式（例 `12345[1]`）。状態は `run_command("pjstat")` で確認。
+- `nodes`/`elapse` は**サブジョブ1個あたり**の指定。ノード時間は サブジョブ数×nodes×elapse 消費される点に注意。
+
+### ステップジョブ（依存関係のある逐次実行）
+- 1本目: `submit_job(script=..., extra_qopt='--step')` → 応答例 `Job 71080_0 submitted`（サブジョブID=「ジョブID_ステップ番号」）。
+- 2本目以降は `jid=` で同じステップジョブに連結:
+  `extra_qopt='--step --sparam "jid=71080"'`（前のサブジョブ終了後に実行される）。
+- 依存条件は `sd=`（依存関係式）で指定。例: `--sparam "jid=71080,sd=ec!=0:one:1"`
+  = 「サブジョブ1の終了コード(ec)が0以外なら、このサブジョブを削除(one)する」。
+- 完了確認は `job_status(ジョブID部分)` か `run_command("pjstat")`。詳細書式は `search_manual("ステップジョブ")`。
+
 ## コンパイル（ログインノードで run_command）
 - **コンパイルは必ずログインノードで、クロスコンパイラを使って行う**（計算ノードやジョブ内ではビルドしない）。`run_command` はログインノード上で動くので、ビルドは `run_command` で実行し、実行（`./a.out`）だけを `run_job` で計算ノードに投げる。
 - 富士通コンパイラ（A64FX最適化）: C=`fcc` / C++=`FCC` / Fortran=`frt`。MPI版=`mpifcc` / `mpiFCC` / `mpifrt`。いずれもログインノード上で計算ノード向けにクロスコンパイルする。
 - GCC等のクロスコンパイルも可。環境切替は `module`（や `spack`）。
 - 例: `run_command("mpifcc -Kfast -o a.out main.c")`、`run_command("module avail")`。
 - 正確なオプション・最適化（`-Kfast` 等）は公式「言語開発環境編」を参照。
+
+## Spack（OSS・ライブラリの導入）
+富岳ではOSSパッケージ管理に Spack が整備されている（パブリック・インスタンス=導入済みパッケージ群）。
+- 環境設定（bash）: `. /vol0004/apps/oss/spack/share/spack/setup-env.sh`
+  （`.bashrc` には書かないこと=ファイルシステム障害時にログイン不能になる恐れ）
+- 導入済みパッケージ一覧: `spack find -x` ／ 利用: `spack load <pkg>`（例 `spack load tmux`）／ 解除: `spack unload <pkg>`
+- 同名パッケージが複数あるときは版・コンパイラ・ハッシュで特定: `spack load screen@4.9.1`、`spack load screen%fj`、`spack load /e754igt`
+- **ジョブ内（計算ノード）で使う場合は `-x PJM_LLIO_GFSCACHE=/vol0004` が必須**（Spack本体が /vol0004 にあるため）:
+  `run_job(commands=". /vol0004/apps/oss/spack/share/spack/setup-env.sh && spack load <pkg> && ./a.out", extra_qopt='-x PJM_LLIO_GFSCACHE=/vol0004')`
+- 既知の問題: `spack load` 後にコマンドが動かない → `export LD_LIBRARY_PATH=/lib64:$LD_LIBRARY_PATH` で回復することがある。
+- 詳細は公式「Fugaku Spack Guide」（末尾リンク）。
 
 ## ジョブの状態の見方
 - **投入(submit)はサーバ側で数十秒かかるのは正常**（同期実行）。
@@ -74,9 +108,28 @@
 - **"No Jobs."**: ジョブ0件の**正常応答**（エラーではない）。
 - **MPIでプロセス数が合わない**: `mpiexec -n` の総数と `--mpi proc=` と `node` の整合を確認。
 
-## パス・ファイル・ストレージ
+## パス・ファイル・ストレージ（LLIO）
 - ファイルAPIは**絶対パス**。`~` は展開されない（`run_command` 内では展開される）。一覧は `run_command("ls -la <dir>")`。
-- ストレージ: `/home`（グループ領域）、大容量は第2階層 `/vol...`（FEFS）。ジョブの高速IOは LLIO。詳細は「プログラミングガイド(IO編)」。
+- ストレージ階層: `/home`（グループ領域・小容量）、大容量データは**第2階層 `/vol000N`**（FEFS）。
+  計算ノード直近の高速IOは**第1階層（LLIO）**が担う。
+- **ジョブから `/vol000N` を読み書きするときは `-x PJM_LLIO_GFSCACHE=/vol000N` を指定**（第2階層キャッシュの対象ボリューム指定。
+  `run_job` では `extra_qopt='-x PJM_LLIO_GFSCACHE=/vol0004'` のように渡す）。
+- LLIOの内訳: ノード当たり約87GiBを「ノード内テンポラリ領域＋共有テンポラリ領域＋第2階層キャッシュ」で分け合う
+  （キャッシュは最低128MiB必要）。サイズは pjsub `--llio localtmp-size=10Gi` / `--llio sharedtmp-size=10Gi` 等で指定（`extra_qopt` で渡す）。
+- **大規模ジョブで全ノードが同じファイル（実行ファイル・入力）を読むときは `llio_transfer ./a.out`** で事前配布するとアクセス集中を回避できる
+  （読み取り専用・ジョブスクリプト内で実行、終わったら `llio_transfer --purge`）。
+- 注意: `--llio async-close=on` 使用時、ノード障害やジョブ時間超過では書出し完了が保証されない。詳細は公式「8. 階層化ストレージ」。
+
+## 性能分析・チューニング
+- まず `#PJM -S`（`extra_qopt='-S'`）でジョブ統計（ノード・メモリ使用等）を出力し、`elapse` 実測と合わせて資源量を見直す。
+- コンパイル最適化: 富士通コンパイラは `-Kfast` が基本。スレッド並列は `-Kopenmp`（OpenMP）。ノード内48コアの使い切りは
+  「フラットMPI（48プロセス/ノード）」か「MPI＋OpenMPハイブリッド（例 4プロセス×12スレッド、`export OMP_NUM_THREADS=12`）」。
+- プロファイラ（富士通 Development Studio、ログインノードから利用可）:
+  - 簡易プロファイラ fipp: ジョブ内で `fipp -C -d ./fipp_out mpiexec ./a.out` → ログインノードで `fipppx -A -d ./fipp_out`（コスト分布・MPI待ち等）。
+  - 詳細プロファイラ fapp: `fapp -C -d ./fapp_out mpiexec ./a.out` → `fapppx -A -d ./fapp_out`。CPU性能解析レポート（PA情報）は
+    `-Hevent=pa1`〜の複数回測定＋公式Excel（cpu_pa_report.xlsm）で可視化。
+  - PAPI によるハードウェアカウンタ取得も可（言語開発環境編 6章）。
+  - 詳細は公式マニュアル一覧の「プロファイラ使用手引書」。
 
 ## それでも分からないとき
 - **このガイド(`fugaku_help`)に無い情報は `search_manual(query)` で公式マニュアルを検索**して範囲を広げる（該当箇所の抜粋とURLが返る。`lang="en"` で英語）。
@@ -85,6 +138,8 @@
 
 ## 公式マニュアル
 - 利用およびジョブ実行編: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-use-1.52/build/ja/index.html
-- 言語開発環境編（コンパイラ）: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.41/build/ja/index.html
-- スタートアップガイド / マニュアル一覧: https://www.r-ccs.riken.jp/fugaku/user-manuals/
+  （5.3 ステップジョブ / 5.4 バルクジョブ / 8. 階層化ストレージ・LLIO を含む）
+- 言語開発環境編（コンパイラ・PAPI）: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.41/build/ja/index.html
+- Fugaku Spack Guide: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/fugakuspackguide/build/ja/index.html
+- スタートアップガイド / マニュアル一覧（プロファイラ使用手引書ほか）: https://www.r-ccs.riken.jp/fugaku/user-manuals/
 - リソースグループ構成: https://www.fugaku.r-ccs.riken.jp/resource_group_config

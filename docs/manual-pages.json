@@ -7,6 +7,10 @@
     "lang": {
       "ja": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.41/build/ja/",
       "en": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.41/build/en/"
+    },
+    "spack": {
+      "ja": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/fugakuspackguide/build/ja/",
+      "en": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/fugakuspackguide/build/en/"
     }
   },
   "pages": [
@@ -20,6 +24,18 @@
     {"guide": "use", "rel": "MPI/index.html", "title_ja": "MPIジョブの実行", "title_en": "MPI Job Execution", "kw": "MPI mpiexec 並列 parallel proc rank"},
     {"guide": "use", "rel": "MPI/FormatOfMpiexecCommand.html", "title_ja": "mpiexecコマンドの形式", "title_en": "Format of Mpiexec Command", "kw": "mpiexec -n proc プロセス process std-proc 出力 stdout MPMD"},
     {"guide": "use", "rel": "MPI/RankAssignment.html", "title_ja": "ランク割り当て", "title_en": "Rank Assignment", "kw": "rank ランク 割り当て assignment プロセス配置 mapping"},
-    {"guide": "lang", "rel": "index.html", "title_ja": "言語開発環境編 目次", "title_en": "Language and development environment (index)", "kw": "compiler コンパイラ fcc FCC frt mpifcc コンパイル compile 最適化 -Kfast module spack 言語"}
+    {"guide": "use", "rel": "JobExecution/StepJob.html", "title_ja": "ステップジョブ(依存関係)", "title_en": "Step Job (dependencies)", "kw": "ステップ step 依存 depend dependency sd sparam jid 逐次 連結 chain ワークフロー workflow"},
+    {"guide": "use", "rel": "JobExecution/BulkJob.html", "title_ja": "バルクジョブ(ジョブ配列)", "title_en": "Bulk Job (job arrays)", "kw": "バルク bulk 配列 array ジョブ配列 job array PJM_BULKNUM sparam パラメータ parameter サーベイ survey サブジョブ subjob"},
+    {"guide": "use", "rel": "JobExecution/InteractiveJob.html", "title_ja": "会話型ジョブ", "title_en": "Interactive Job", "kw": "会話 interactive 対話 pjsub --interact"},
+    {"guide": "use", "rel": "LayeredStorageAndLLIO/index.html", "title_ja": "階層化ストレージ(LLIO) 目次", "title_en": "Layered Storage (LLIO) index", "kw": "ストレージ storage LLIO 階層 layered tier テンポラリ temporary FEFS vol 第1階層 第2階層"},
+    {"guide": "use", "rel": "LayeredStorageAndLLIO/TheSecondLayerStrage.html", "title_ja": "第2階層ストレージ(キャッシュ・llio_transfer)", "title_en": "Second-Layer Storage (cache, llio_transfer)", "kw": "第2階層 second layer キャッシュ cache GFSCACHE PJM_LLIO_GFSCACHE llio_transfer 共通ファイル 配布 stripe ストライプ"},
+    {"guide": "use", "rel": "LayeredStorageAndLLIO/TemporaryAreaInNode.html", "title_ja": "ノード内テンポラリ領域", "title_en": "Node-local Temporary Area", "kw": "ノード内 テンポラリ local temporary localtmp PJM_LOCALTMP スクラッチ scratch"},
+    {"guide": "use", "rel": "LayeredStorageAndLLIO/SharedTemporaryArea.html", "title_ja": "共有テンポラリ領域", "title_en": "Shared Temporary Area", "kw": "共有 テンポラリ shared temporary sharedtmp PJM_SHAREDTMP"},
+    {"guide": "use", "rel": "LayeredStorageAndLLIO/SelectAvailableVolumes.html", "title_ja": "利用ボリュームの選択(8.8)", "title_en": "Volume Selection (8.8)", "kw": "ボリューム volume 選択 selection vol0004 GFSCACHE spack"},
+    {"guide": "use", "rel": "LayeredStorageAndLLIO/IOoptimization.html", "title_ja": "IO最適化", "title_en": "I/O Optimization", "kw": "IO 最適化 optimization 性能 performance チューニング tuning"},
+    {"guide": "use", "rel": "LayeredStorageAndLLIO/IOprofiling.html", "title_ja": "IOプロファイリング", "title_en": "I/O Profiling", "kw": "IO プロファイル profiling 分析 analysis ボトルネック bottleneck"},
+    {"guide": "spack", "rel": "index.html", "title_ja": "Fugaku Spack Guide 目次", "title_en": "Fugaku Spack Guide (index)", "kw": "spack スパック パッケージ package OSS ソフトウェア software 導入 install"},
+    {"guide": "spack", "rel": "intro.html", "title_ja": "Spackの利用(環境設定・load・install)", "title_en": "Using Spack (setup, load, install)", "kw": "spack load find install unload setup-env パブリック public インスタンス instance モジュール module パッケージ package ライブラリ library"},
+    {"guide": "lang", "rel": "index.html", "title_ja": "言語開発環境編 目次", "title_en": "Language and development environment (index)", "kw": "compiler コンパイラ fcc FCC frt mpifcc コンパイル compile 最適化 -Kfast module spack 言語 PAPI プロファイラ profiler fipp fapp 性能 performance"}
   ]
 }

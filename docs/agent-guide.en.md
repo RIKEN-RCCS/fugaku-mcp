@@ -52,12 +52,46 @@ The official standard job script example (submit with `pjsub sample.sh`):
   - When using `submit_job` (low-level), collect it yourself after completion with `run_command("cat $HOME/output.<jobid>/*/*/stdout.* | sort | uniq -c")`.
 - For details such as MPMD and process placement (rank), see the official manual "6. Running MPI jobs".
 
+## Job arrays (bulk jobs) and dependent jobs (step jobs)
+Parameter surveys and dependent job chains are provided by pjsub features. **For both, use `submit_job`
+(low-level) with `extra_qopt`, not `run_job`** (run_job funnels all output into a single `<name>.result`,
+so multiple sub-jobs would write to the same file and collide).
+
+### Bulk jobs (run the same script many times with different parameters)
+- Submit: `submit_job(script=..., extra_qopt='--bulk --sparam "0-9"')` → 10 sub-jobs with bulk numbers 0–9 (range 0–999999).
+- Inside the script, use the environment variable `${PJM_BULKNUM}` to identify each sub-job and separate its I/O:
+  ```bash
+  #!/bin/bash
+  ./a.out < indata.${PJM_BULKNUM} > outdata.${PJM_BULKNUM} 2>&1
+  ```
+- Sub-job IDs have the form "jobid[bulknum]" (e.g. `12345[1]`). Check status with `run_command("pjstat")`.
+- `nodes`/`elapse` apply **per sub-job**. Note that node-hours consumed = number of sub-jobs × nodes × elapse.
+
+### Step jobs (sequential execution with dependencies)
+- First step: `submit_job(script=..., extra_qopt='--step')` → response like `Job 71080_0 submitted` (sub-job ID = "jobid_stepno").
+- Attach subsequent steps to the same step job with `jid=`:
+  `extra_qopt='--step --sparam "jid=71080"'` (runs after the previous sub-job finishes).
+- Dependency conditions use `sd=` (dependency expressions). Example: `--sparam "jid=71080,sd=ec!=0:one:1"`
+  = "if sub-job 1's exit code (ec) is non-zero, delete (one) this sub-job".
+- Check completion with `job_status(<jobid part>)` or `run_command("pjstat")`. For the full syntax, use `search_manual("step job")`.
+
 ## Compilation (run_command on the login node)
 - **Always compile on the login node using cross-compilers** (do not build on compute nodes or inside jobs). `run_command` runs on the login node, so build with `run_command` and submit only the execution (`./a.out`) to compute nodes via `run_job`.
 - Fujitsu compilers (A64FX optimized): C=`fcc` / C++=`FCC` / Fortran=`frt`. MPI versions=`mpifcc` / `mpiFCC` / `mpifrt`. All of these cross-compile on the login node targeting the compute nodes.
 - Cross-compilation with GCC and others is also possible. Switch environments with `module` (or `spack`).
 - Examples: `run_command("mpifcc -Kfast -o a.out main.c")`, `run_command("module avail")`.
 - For exact options and optimizations (`-Kfast`, etc.), refer to the official "Language and development environment".
+
+## Spack (installing OSS and libraries)
+Fugaku provides Spack for OSS package management (the public instance = pre-installed package set).
+- Environment setup (bash): `. /vol0004/apps/oss/spack/share/spack/setup-env.sh`
+  (do **not** put this in `.bashrc` — it can make login impossible during filesystem trouble)
+- List installed packages: `spack find -x` / use one: `spack load <pkg>` (e.g. `spack load tmux`) / release: `spack unload <pkg>`
+- When multiple packages share a name, pin by version, compiler, or hash: `spack load screen@4.9.1`, `spack load screen%fj`, `spack load /e754igt`
+- **When using Spack inside a job (compute node), `-x PJM_LLIO_GFSCACHE=/vol0004` is required** (Spack itself lives on /vol0004):
+  `run_job(commands=". /vol0004/apps/oss/spack/share/spack/setup-env.sh && spack load <pkg> && ./a.out", extra_qopt='-x PJM_LLIO_GFSCACHE=/vol0004')`
+- Known issue: commands fail after `spack load` → `export LD_LIBRARY_PATH=/lib64:$LD_LIBRARY_PATH` often recovers it.
+- Details: the official "Fugaku Spack Guide" (link at the end).
 
 ## How to read job status
 - **It is normal for submission (submit) to take tens of seconds on the server side** (synchronous execution).
@@ -73,9 +107,28 @@ The official standard job script example (submit with `pjsub sample.sh`):
 - **"No Jobs."**: a **normal response** meaning zero jobs (not an error).
 - **MPI process counts don't match**: verify consistency between the total in `mpiexec -n`, `--mpi proc=`, and `node`.
 
-## Paths, files, storage
+## Paths, files, storage (LLIO)
 - The file API uses **absolute paths**. `~` is not expanded (it is expanded within `run_command`). List with `run_command("ls -la <dir>")`.
-- Storage: `/home` (group area); for large capacity use the second tier `/vol...` (FEFS). High-speed I/O for jobs uses LLIO. For details, see the "Programming Guide (I/O)".
+- Storage tiers: `/home` (group area, small capacity); large data lives on the **second tier `/vol000N`** (FEFS).
+  Fast I/O close to the compute nodes is provided by the **first tier (LLIO)**.
+- **When a job reads/writes `/vol000N`, specify `-x PJM_LLIO_GFSCACHE=/vol000N`** (selects the volume for the second-tier cache;
+  with `run_job`, pass it as `extra_qopt='-x PJM_LLIO_GFSCACHE=/vol0004'`).
+- LLIO breakdown: about 87 GiB per node shared among "node-local temporary + shared temporary + second-tier cache"
+  (the cache needs at least 128 MiB). Sizes are set with pjsub `--llio localtmp-size=10Gi` / `--llio sharedtmp-size=10Gi` etc. (pass via `extra_qopt`).
+- **When all nodes of a large job read the same file (executable, input), distribute it first with `llio_transfer ./a.out`** to avoid access congestion
+  (read-only; run inside the job script; clean up with `llio_transfer --purge`).
+- Caution: with `--llio async-close=on`, write-out completion is not guaranteed on node failure or elapsed-time overrun. Details: official "8. Layered storage".
+
+## Performance analysis and tuning
+- Start with `#PJM -S` (`extra_qopt='-S'`) to output job statistics (nodes, memory usage, etc.), and adjust resources against measured `elapse`.
+- Compiler optimization: for Fujitsu compilers, `-Kfast` is the baseline; thread parallelism uses `-Kopenmp` (OpenMP). To use all 48 cores per node,
+  choose "flat MPI (48 processes/node)" or "MPI + OpenMP hybrid (e.g. 4 processes × 12 threads, `export OMP_NUM_THREADS=12`)".
+- Profilers (Fujitsu Development Studio, usable from the login node):
+  - Instant profiler fipp: inside the job, `fipp -C -d ./fipp_out mpiexec ./a.out` → on the login node, `fipppx -A -d ./fipp_out` (cost distribution, MPI wait, etc.).
+  - Advanced profiler fapp: `fapp -C -d ./fapp_out mpiexec ./a.out` → `fapppx -A -d ./fapp_out`. For the CPU performance analysis report (PA data),
+    run multiple measurements with `-Hevent=pa1`… and visualize with the official Excel sheet (cpu_pa_report.xlsm).
+  - Hardware counters are also available via PAPI (Language guide, ch. 6).
+  - Details: "Profiler User's Guide" in the official manual list.
 
 ## When you still can't figure it out
 - **For anything not in this guide (`fugaku_help`), use `search_manual(query)` to search the official manuals** and broaden the search (returns matching excerpts and URLs; `lang="en"` for English).
@@ -84,6 +137,8 @@ The official standard job script example (submit with `pjsub sample.sh`):
 
 ## Official manuals
 - Use and job execution: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-use-1.52/build/en/index.html
-- Language and development environment (compilers): https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.41/build/en/index.html
-- Startup guide / manual list: https://www.r-ccs.riken.jp/en/fugaku/user-manuals/
+  (includes 5.3 Step jobs / 5.4 Bulk jobs / 8. Layered storage & LLIO)
+- Language and development environment (compilers, PAPI): https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.41/build/en/index.html
+- Fugaku Spack Guide: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/fugakuspackguide/build/en/index.html
+- Startup guide / manual list (incl. Profiler User's Guide): https://www.r-ccs.riken.jp/en/fugaku/user-manuals/
 - Resource group configuration: https://www.fugaku.r-ccs.riken.jp/resource_group_config
