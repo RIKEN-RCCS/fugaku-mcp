@@ -82,6 +82,53 @@ codex mcp add fugaku \
 > （ファイル本文・ジョブ出力）が**クラウドへ送られません**。機微データを富岳でやり取りする場合に有利です。
 > （Claude Code / Codex はクラウドのAIモデルへ送信されます）
 
+## opencode
+[opencode](https://opencode.ai) はOSSのターミナルAIコーディングエージェント。プロバイダを選べる
+（Anthropic/OpenAI等のクラウド、またはOllamaのローカルLLM）。設定は `mcp` キー（**書式が独自**:
+`command` は実行ファイルと引数を**1つの配列**にまとめ、環境変数のキー名は `environment`）:
+- グローバル: `~/.config/opencode/opencode.json`
+- プロジェクト: リポジトリ直下の `opencode.json`
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "fugaku": {
+      "type": "local",
+      "command": [
+        "/path/to/fugaku-mcp/.venv/bin/python",
+        "/path/to/fugaku-mcp/fugaku_mcp.py"
+      ],
+      "enabled": true,
+      "environment": { "FUGAKU_CERT": "/path/to/<account>.pem" }
+    }
+  }
+}
+```
+ツールは `fugaku_<ツール名>` の形で自動登録されます。
+
+Ollama（ローカルLLM）で使う場合は `provider` も追記し、`opencode run -m ollama/<モデル名> "..."` で実行:
+```json
+{
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": { "baseURL": "http://localhost:11434/v1" },
+      "models": { "gpt-oss:20b": { "name": "GPT-OSS 20B (local)" } }
+    }
+  }
+}
+```
+
+検証済み（opencode 1.18.4 ＋ Ollama `gpt-oss:20b` / `qwen3:30b` の両方で `cluster_status` を実行→
+富岳から `{"status":"OK","machine":"computer"}` 取得。ローカルLLM利用時は vibe-local と同様、
+AIが読んだ内容はクラウドへ送られない）。
+
+> **うまく動かないとき**: ローカルLLMでツール呼び出しが実行されない場合は、公式ドキュメントの推奨に従い
+> Ollama側のコンテキスト長（`num_ctx`）を16k〜32k程度に増やす。モデルはネイティブtool-calling対応の
+> ものを使う（`gpt-oss:20b`・`qwen3:30b` で動作確認済み）。
+
 ## その他のMCP対応クライアント（Cursor / VS Code / Cline など）
 多くは Claude Code と同じ `mcpServers` 形式のJSON、または専用UIで `command`/`args`/`env` を登録します。
 上の「3点」を各ツールの書式に合わせて記述してください。**stdio 起動・環境変数渡し**に対応していれば動作します。

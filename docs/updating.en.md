@@ -16,7 +16,7 @@ Run the update script in the repository:
 cd /path/to/fugaku-mcp
 ./update.sh          # git pull --ff-only + dependency (mcp) update
 ```
-After updating, **fully restart the MCP client (Claude Code / Codex / vibe-local)** to apply it
+After updating, **fully restart the MCP client (Claude Code / Codex / vibe-local / opencode)** to apply it
 (especially required when the set of tools changes).
 
 ## 3. Auto-update (opt-in, use with care)

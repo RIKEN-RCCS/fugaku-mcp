@@ -81,6 +81,54 @@ calling `cluster_status` returned `{"status":"OK","machine":"computer"}` from Fu
 > (file contents, job output) is **not sent to the cloud**. This is beneficial when handling sensitive data
 > on Fugaku. (Claude Code / Codex send to a cloud AI model.)
 
+## opencode
+[opencode](https://opencode.ai) is an open-source terminal AI coding agent with selectable providers
+(cloud models such as Anthropic/OpenAI, or local LLMs via Ollama). Configuration uses an `mcp` key
+(**its own format**: `command` is the executable and its arguments combined into **a single array**, and
+the environment-variable key is named `environment`):
+- Global: `~/.config/opencode/opencode.json`
+- Project: `opencode.json` at the repository root
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "fugaku": {
+      "type": "local",
+      "command": [
+        "/path/to/fugaku-mcp/.venv/bin/python",
+        "/path/to/fugaku-mcp/fugaku_mcp.py"
+      ],
+      "enabled": true,
+      "environment": { "FUGAKU_CERT": "/path/to/<account>.pem" }
+    }
+  }
+}
+```
+Tools are auto-registered as `fugaku_<tool>`.
+
+To use Ollama (local LLM), also add a `provider` entry and run with `opencode run -m ollama/<model> "..."`:
+```json
+{
+  "provider": {
+    "ollama": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Ollama (local)",
+      "options": { "baseURL": "http://localhost:11434/v1" },
+      "models": { "gpt-oss:20b": { "name": "GPT-OSS 20B (local)" } }
+    }
+  }
+}
+```
+
+Verified working (opencode 1.18.4 with both Ollama `gpt-oss:20b` and `qwen3:30b`: calling `cluster_status`
+returned `{"status":"OK","machine":"computer"}` from Fugaku. With a local LLM, as with vibe-local,
+content the AI reads is not sent to the cloud).
+
+> **If it doesn't work**: when tool calls are not executed with a local LLM, follow the official docs'
+> advice and increase Ollama's context length (`num_ctx`) to around 16k–32k. Use a model with native
+> tool-calling (`gpt-oss:20b` and `qwen3:30b` are confirmed working).
+
 ## Other MCP-capable clients (Cursor / VS Code / Cline, etc.)
 Most use the same `mcpServers` JSON as Claude Code, or a dedicated UI to register `command`/`args`/`env`.
 Just express the "three things" above in that tool's format. It works as long as the client can **launch a
