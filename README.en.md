@@ -50,7 +50,7 @@ The LLM itself runs locally (on your machine), while Fugaku focuses solely on ex
 ## Setup (essentials)
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install "mcp[cli]"
+python3 -m venv .venv && .venv/bin/pip install "mcp[cli]==2.0.0"
 openssl pkcs12 -in <account>.p12 -nodes -out <account>.pem   # combined cert+key PEM
 
 # Only the certificate path is required (HOME/account/group are auto-detected at startup)

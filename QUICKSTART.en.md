@@ -19,7 +19,7 @@ Just by talking to Claude Code, you can run jobs, manage files, and check status
 git clone https://github.com/RIKEN-RCCS/fugaku-mcp.git
 cd fugaku-mcp
 python3 -m venv .venv
-.venv/bin/pip install "mcp[cli]"
+.venv/bin/pip install "mcp[cli]==2.0.0"
 ```
 
 > If installing `mcp` fails on Python 3.14, use 3.12 instead with `python3.12 -m venv .venv`.

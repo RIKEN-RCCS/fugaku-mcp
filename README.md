@@ -51,7 +51,7 @@ LLM本体は手元（ローカル）で動き、富岳側は計算の実行に�
 ## セットアップ（要点）
 
 ```bash
-python3 -m venv .venv && .venv/bin/pip install "mcp[cli]"
+python3 -m venv .venv && .venv/bin/pip install "mcp[cli]==2.0.0"
 openssl pkcs12 -in <account>.p12 -nodes -out <account>.pem   # cert+key 結合PEM
 
 # 設定は証明書パスのみ必須（HOME/アカウント/グループは起動時に自動検出）

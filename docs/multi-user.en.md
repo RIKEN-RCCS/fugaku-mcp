@@ -17,7 +17,7 @@ In this model, **each user runs their own MCP server on their own Mac, using the
 ```bash
 # 1) Clone the repository and set up a venv (first time only)
 git clone <repo> fugaku_mcp && cd fugaku_mcp
-python3 -m venv .venv && .venv/bin/pip install "mcp[cli]"
+python3 -m venv .venv && .venv/bin/pip install "mcp[cli]==2.0.0"
 
 # 2) Onboarding helper (p12→pem conversion, connectivity check, identity detection, .mcp.json output)
 ./setup_user.sh ~/Downloads/<account>.p12
