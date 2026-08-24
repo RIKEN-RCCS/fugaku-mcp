@@ -68,6 +68,15 @@ Traffic between your PC ↔ the Fugaku WebAPI is over HTTPS (certificate authent
 **Q. Can compute nodes reach the internet?**
 No. The AI (the brain) runs locally, while the Fugaku side focuses solely on running computations. The two are connected through certificate-secured HTTPS API calls (see the architecture in the [README](../README.en.md)).
 
+## Updating
+**Q. `./update.sh` fails with `error: unknown option 'ff-only'`.**
+This is a bug in `update.sh` before 1.6.2. Since `update.sh` runs the old copy already on your machine, it dies
+before it can fetch the fixed version. Update manually, once (no need to reinstall dependencies):
+```bash
+cd /path/to/fugaku-mcp && git pull --ff-only
+```
+Once you are on 1.6.2 or later, `./update.sh` works normally. See [updating.en.md](updating.en.md).
+
 ## History & Operations
 **Q. I want to keep a usage log.**
 Set `FUGAKU_AUDIT_LOG` for local logging and `FUGAKU_AUDIT_REMOTE` for aggregation on Fugaku. Aggregate with `tests/audit_report.py` ([multi-user.en.md](multi-user.en.md)).

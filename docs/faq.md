@@ -68,6 +68,15 @@ MCP SDK 2.0.0（2026-07-28公開）で `FastMCP` クラスが `MCPServer` に改
 **Q. 計算ノードからインターネットに出られますか？**
 出られません。AI（頭脳）はローカルで動き、富岳側は計算の実行に専念します。両者は証明書付きHTTPSのAPI呼び出しでつながります（[README](../README.md) アーキテクチャ参照）。
 
+## 更新
+**Q. `./update.sh` が `error: unknown option 'ff-only'` で失敗します。**
+1.6.2 より前の `update.sh` のバグです。`update.sh` は手元の古いコピーが実行されるため、修正版を取りに行く前に落ちます。
+一度だけ手動で更新してください（依存の再インストールは不要）:
+```bash
+cd /path/to/fugaku-mcp && git pull --ff-only
+```
+1.6.2 以降に上がれば、次回からは `./update.sh` が正常に動きます。詳細は [updating.md](updating.md)。
+
 ## 履歴・運用
 **Q. 利用履歴を残したい。**
 ローカルは `FUGAKU_AUDIT_LOG`、富岳上への集約は `FUGAKU_AUDIT_REMOTE` を設定します。集計は `tests/audit_report.py`（[multi-user.md](multi-user.md)）。

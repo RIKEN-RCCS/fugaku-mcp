@@ -19,6 +19,16 @@ cd /path/to/fugaku-mcp
 更新後は **MCPクライアント（Claude Code / Codex / vibe-local / opencode）を完全に再起動**して反映します
 （ツールの増減がある場合は特に必須）。
 
+> ### ⚠️ 1.6.1 以前からの更新は `git pull` を使ってください
+> **1.6.2 より前の `update.sh` にはバグがあり、実行すると更新前に失敗します**（`error: unknown option 'ff-only'`）。
+> `update.sh` は**手元にある古いコピーが実行される**ため、修正版を取りに行く前に落ちてしまいます。
+> この場合は一度だけ手動で更新してください:
+> ```bash
+> cd /path/to/fugaku-mcp && git pull --ff-only
+> ```
+> 依存(`mcp`)の再インストールは不要です（1.x / 2.x の両方で動作します）。
+> 1.6.2 以降に上がれば、次回からは `./update.sh` が正常に使えます。
+
 ## 3. 自動更新（オプトイン・要注意）
 ```json
 "env": { "FUGAKU_AUTO_UPDATE": "1" }   # .mcp.json 等に設定
