@@ -152,7 +152,9 @@ def audit(tool: str, args: dict, ok: bool = True, note: str = ""):
     }
     if AUDIT_LOG:
         try:
-            with open(AUDIT_LOG, "a") as f:
+            # encoding必須: 未指定だとロケール依存になり、日本語Windows(cp932)で
+            # ensure_ascii=False の日本語を書けず UnicodeEncodeError になる。
+            with open(AUDIT_LOG, "a", encoding="utf-8") as f:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
         except OSError:
             pass  # ログ失敗で本処理は止めない

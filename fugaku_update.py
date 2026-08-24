@@ -22,7 +22,7 @@ TTL = 86400  # 24h
 
 def local_version():
     try:
-        with open(VERSION_FILE) as f:
+        with open(VERSION_FILE, encoding="utf-8") as f:
             return f.read().strip()
     except OSError:
         return "0.0.0"
@@ -59,7 +59,7 @@ def cached_result():
     """ネットワークを使わず、キャッシュがあればそれで判定（account_info 等の低遅延用）。"""
     cur = local_version()
     try:
-        with open(CACHE_FILE) as f:
+        with open(CACHE_FILE, encoding="utf-8") as f:
             c = json.load(f)
         return _result(cur, c.get("latest"), cached=True)
     except Exception:
@@ -73,7 +73,7 @@ def check(force=False, timeout=5):
     cur = local_version()
     if not force:
         try:
-            with open(CACHE_FILE) as f:
+            with open(CACHE_FILE, encoding="utf-8") as f:
                 c = json.load(f)
             if time.time() - c.get("ts", 0) < TTL:
                 return _result(cur, c.get("latest"), cached=True)
@@ -84,7 +84,7 @@ def check(force=False, timeout=5):
     except Exception as e:
         return {"checked": False, "reason": type(e).__name__, "current": cur}
     try:
-        with open(CACHE_FILE, "w") as f:
+        with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump({"ts": time.time(), "latest": latest}, f)
     except OSError:
         pass

@@ -13,6 +13,7 @@ Just by talking to your AI assistant, you can run jobs, manage files, and check 
 - One of the supported **AI clients**: [Claude Code](https://claude.com/claude-code) (desktop app or CLI),
   [Codex](https://developers.openai.com/codex), or [opencode](https://opencode.ai)
 - **Python 3.10 or later**, plus `git` and `openssl` (standard on Mac/Linux; check with `python3 --version`)
+- OS: **macOS / Linux**. On Windows, use **WSL2** (see "Using it on Windows" below)
 - Network: **No VPN required** (the Fugaku WebAPI is publicly available on the internet and authenticates via certificate)
 
 ## 1. Installation (first time only)
@@ -118,6 +119,42 @@ Restart opencode afterwards. The tools become available as `fugaku_<tool>`.
 > [docs/clients.en.md](docs/clients.en.md) for a configuration example.
 
 > **Other clients** (vibe-local / Cursor / VS Code / Cline, etc.) → [docs/clients.en.md](docs/clients.en.md)
+
+## Using it on Windows (WSL2)
+
+The setup scripts (`setup_user.sh` / `update.sh`) assume bash, `openssl`, and `curl`, so on Windows please
+run everything inside **WSL2 (Windows Subsystem for Linux)**. Steps 1–3 above work as-is inside WSL2.
+
+```powershell
+# In PowerShell (as Administrator), install WSL2 + Ubuntu, then start Ubuntu after rebooting
+wsl --install -d Ubuntu
+```
+
+Inside Ubuntu (WSL2):
+
+```bash
+sudo apt update && sudo apt install -y python3-venv git openssl
+```
+
+From there, **follow step 1 onwards as normal**. A certificate you received on the Windows side is reachable
+from WSL2 under `/mnt/c/...`.
+
+```bash
+# Example: using a certificate in your Windows Downloads folder
+./setup_user.sh /mnt/c/Users/<your-windows-username>/Downloads/your-certificate.p12
+```
+
+> **Things to watch out for**
+> - **Copy the certificate into your WSL2 home (`~/`) before using it.** Permissions do not behave as
+>   expected under `/mnt/c/...`, so `chmod 600` cannot protect your private key there.
+> - Run your AI client inside WSL2 as well (a Windows-side client cannot launch an MCP server that lives inside WSL2).
+> - Every path in your configuration file must be a **WSL2 path** (e.g. `/home/<user>/fugaku-mcp/.venv/bin/python`).
+
+> **About native Windows (without WSL)**: the MCP server itself is written using only the Python standard
+> library and is expected to work on native Windows, but **it has not been verified on real hardware yet**.
+> If you try it, note that the venv path becomes `.venv\Scripts\python.exe`, and that you will need to convert
+> the certificate manually (`openssl pkcs12 -in <cert>.p12 -nodes -out <cert>.pem`) in place of `setup_user.sh`.
+> Reports of success or failure are welcome at [Issues](https://github.com/RIKEN-RCCS/fugaku-mcp/issues).
 
 ## 4. Verify it works
 

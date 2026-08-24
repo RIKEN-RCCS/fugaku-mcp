@@ -12,6 +12,12 @@ HPCI/R-CCSのポータルで証明書を再発行し、`./setup_user.sh 新し�
 **Q. 複数のプロジェクトで使いたい。**
 使うフォルダごとに `.mcp.json` を置けば、そのフォルダで起動したときに有効になります（[QUICKSTART](../QUICKSTART.md)）。
 
+**Q. Windowsで使えますか？**
+**WSL2 の中で**お使いください。導入スクリプトが bash・`openssl`・`curl` 前提のためです。手順は
+[QUICKSTART の「Windowsで使う（WSL2）」](../QUICKSTART.md) を参照。証明書は `/mnt/c/...` から
+**WSL2側のホームにコピーしてから**使ってください（`/mnt/c` ではパーミッションが効かず秘密鍵を保護できません）。
+AIクライアントもWSL2側で動かす必要があります。ネイティブWindowsは未検証です。
+
 **Q. `python3 -m venv` や `pip install "mcp[cli]~=2.0"` が失敗します。**
 Python 3.10以上が必要です。3.14で失敗する場合は 3.12（`python3.12 -m venv .venv`）をお試しください。
 

@@ -12,6 +12,12 @@ Reissue the certificate from the HPCI/R-CCS portal, then re-run `./setup_user.sh
 **Q. I want to use this across multiple projects.**
 Place a `.mcp.json` in each folder you work in, and it will take effect when you start in that folder ([QUICKSTART](../QUICKSTART.en.md)).
 
+**Q. Can I use this on Windows?**
+Yes — **inside WSL2**. The setup scripts assume bash, `openssl`, and `curl`. See
+["Using it on Windows (WSL2)" in QUICKSTART](../QUICKSTART.en.md). Copy your certificate from `/mnt/c/...`
+**into your WSL2 home before using it** (permissions do not apply under `/mnt/c`, so your private key cannot
+be protected there). Your AI client must run inside WSL2 too. Native Windows is not yet verified.
+
 **Q. `python3 -m venv` or `pip install "mcp[cli]~=2.0"` fails.**
 Python 3.10 or later is required. If 3.14 fails, try 3.12 (`python3.12 -m venv .venv`).
 

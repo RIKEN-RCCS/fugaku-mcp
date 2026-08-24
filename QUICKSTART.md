@@ -13,6 +13,7 @@ AIアシスタントに話しかけるだけで、富岳でのジョブ実行・
 - **AIクライアント**のいずれか: [Claude Code](https://claude.com/claude-code)（デスクトップアプリ／CLI）、
   [Codex](https://developers.openai.com/codex)、[opencode](https://opencode.ai)
 - **Python 3.10以上** と `git`、`openssl`（Mac/Linux標準。`python3 --version` で確認）
+- OS: **macOS / Linux**。Windowsの場合は **WSL2** を使ってください（下記「Windowsで使う」参照）
 - ネットワーク: **VPNは不要**（富岳WebAPIはインターネット公開。証明書で認証します）
 
 ## 1. 導入（初回のみ）
@@ -117,6 +118,43 @@ codex mcp add fugaku \
 > [docs/clients.md](docs/clients.md) を参照してください。
 
 > **その他のクライアント**（vibe-local / Cursor / VS Code / Cline など）→ [docs/clients.md](docs/clients.md)
+
+## Windowsで使う（WSL2）
+
+導入スクリプト（`setup_user.sh` / `update.sh`）が bash・`openssl`・`curl` を前提としているため、
+Windowsでは **WSL2（Windows Subsystem for Linux）** の中で動かしてください。WSL2内では
+上記の手順1〜3がそのまま使えます。
+
+```powershell
+# PowerShell（管理者）で WSL2 + Ubuntu を導入し、再起動後に Ubuntu を起動
+wsl --install -d Ubuntu
+```
+
+Ubuntu（WSL2）の中で:
+
+```bash
+sudo apt update && sudo apt install -y python3-venv git openssl
+```
+
+以降は**手順1から通常どおり**進めてください。Windows側で受け取った証明書は、WSL2からは
+`/mnt/c/...` で参照できます。
+
+```bash
+# 例: Windowsのダウンロードフォルダにある証明書を使う
+./setup_user.sh /mnt/c/Users/<Windowsのユーザー名>/Downloads/あなたの証明書.p12
+```
+
+> **注意点**
+> - **証明書はWSL2側のホーム（`~/`）にコピーしてから使うことを推奨**します。`/mnt/c/...` は
+>   パーミッションが期待どおりに効かず、`chmod 600` で秘密鍵を保護できません。
+> - AIクライアントもWSL2側で動かしてください（Windows側のクライアントからWSL2内のMCPサーバは直接起動できません）。
+> - 設定ファイルに書くパスは、すべて**WSL2内のパス**（`/home/<ユーザー名>/fugaku-mcp/.venv/bin/python` など）です。
+
+> **ネイティブWindows（WSLなし）について**: MCPサーバ本体はPython標準ライブラリのみで書かれており、
+> ネイティブWindowsでも動作する見込みですが、**現時点で実機検証をしていません**。
+> 試す場合は venv のパスが `.venv\Scripts\python.exe` になる点と、`setup_user.sh` の代わりに
+> 証明書変換（`openssl pkcs12 -in <証明書>.p12 -nodes -out <証明書>.pem`）を手動で行う必要がある点にご注意ください。
+> うまくいった／いかなかった場合は [Issue](https://github.com/RIKEN-RCCS/fugaku-mcp/issues) でお知らせいただけると助かります。
 
 ## 4. 動作確認
 

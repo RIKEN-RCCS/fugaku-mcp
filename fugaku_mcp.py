@@ -283,6 +283,9 @@ def _submit_core(script, name, nodes, elapse, rscgrp, extra_qopt):
     if not re.match(r"^[A-Za-z][A-Za-z0-9._@-]{0,62}$", name):
         raise ValueError("ジョブ名は英字始まり・英数と . - _ @ のみ・63文字以内")
     policy.check_job(nodes, elapse, rscgrp)
+    # 改行を LF に正規化する。CRLF が混ざると富岳側の bash が `\r: command not found` で失敗するため
+    # （Windows クライアントや Windows で編集したスクリプトから混入しやすい）。
+    script = script.replace("\r\n", "\n").replace("\r", "\n")
     jd = jobdir()
     api.command(f"mkdir -p {jd}")
     remote = f"{jd}/{name}.sh"
