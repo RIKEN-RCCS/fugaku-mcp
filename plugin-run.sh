@@ -10,7 +10,7 @@ VENV="$DATA/venv"
 # 初回のみ venv 作成 + mcp 導入（pip等のノイズは stderr へ。stdout は MCP プロトコル専用）
 if [ ! -x "$VENV/bin/python" ]; then
   python3 -m venv "$VENV" >&2
-  "$VENV/bin/pip" -q install mcp >&2
+  "$VENV/bin/pip" -q install "mcp~=2.0" >&2
 fi
 
 exec "$VENV/bin/python" "$ROOT/fugaku_mcp.py"

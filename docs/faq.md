@@ -12,8 +12,13 @@ HPCI/R-CCSのポータルで証明書を再発行し、`./setup_user.sh 新し�
 **Q. 複数のプロジェクトで使いたい。**
 使うフォルダごとに `.mcp.json` を置けば、そのフォルダで起動したときに有効になります（[QUICKSTART](../QUICKSTART.md)）。
 
-**Q. `python3 -m venv` や `pip install "mcp[cli]"` が失敗します。**
+**Q. `python3 -m venv` や `pip install "mcp[cli]~=2.0"` が失敗します。**
 Python 3.10以上が必要です。3.14で失敗する場合は 3.12（`python3.12 -m venv .venv`）をお試しください。
+
+**Q. `ModuleNotFoundError: No module named 'mcp.server.fastmcp'` で起動しません。**
+MCP SDK 2.0.0（2026-07-28公開）で `FastMCP` クラスが `MCPServer` に改称されたためです。本リポジトリは
+1.x / 2.x の両方に対応済みなので、**コードを最新に更新**すれば解消します（`./update.sh` または `git pull`）。
+古い版のコードを使い続ける場合は `pip install "mcp[cli]<2"` で回避できます。
 
 ## ツールが出てこない・反映されない
 **Q. Claude Code に `fugaku` のツールが出てきません。**

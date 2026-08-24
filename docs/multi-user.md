@@ -18,7 +18,7 @@
 ```bash
 # 1) リポジトリを取得し、venvを用意（初回のみ）
 git clone <repo> fugaku_mcp && cd fugaku_mcp
-python3 -m venv .venv && .venv/bin/pip install "mcp[cli]"
+python3 -m venv .venv && .venv/bin/pip install "mcp[cli]~=2.0"
 
 # 2) オンボーディング補助（p12→pem変換・疎通確認・本人情報検出・.mcp.json出力）
 ./setup_user.sh ~/Downloads/<account>.p12

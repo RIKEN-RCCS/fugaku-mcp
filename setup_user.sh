@@ -29,7 +29,7 @@ echo "== 4) Python環境(venv)の準備 =="
 if [ ! -x "$REPO/.venv/bin/python" ]; then
   echo "   venv を作成し mcp を導入します..."
   python3 -m venv "$REPO/.venv"
-  "$REPO/.venv/bin/pip" -q install "mcp[cli]"
+  "$REPO/.venv/bin/pip" -q install "mcp[cli]~=2.0"
 fi
 echo "   OK: $REPO/.venv/bin/python"
 

@@ -19,7 +19,7 @@ Claude Code に話しかけるだけで、富岳でのジョブ実行・ファ�
 git clone https://github.com/RIKEN-RCCS/fugaku-mcp.git
 cd fugaku-mcp
 python3 -m venv .venv
-.venv/bin/pip install "mcp[cli]"
+.venv/bin/pip install "mcp[cli]~=2.0"
 ```
 
 > Python 3.14 で `mcp` の導入に失敗する場合は、3.12 で `python3.12 -m venv .venv` を使ってください。

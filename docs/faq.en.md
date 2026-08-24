@@ -12,8 +12,13 @@ Reissue the certificate from the HPCI/R-CCS portal, then re-run `./setup_user.sh
 **Q. I want to use this across multiple projects.**
 Place a `.mcp.json` in each folder you work in, and it will take effect when you start in that folder ([QUICKSTART](../QUICKSTART.en.md)).
 
-**Q. `python3 -m venv` or `pip install "mcp[cli]"` fails.**
+**Q. `python3 -m venv` or `pip install "mcp[cli]~=2.0"` fails.**
 Python 3.10 or later is required. If 3.14 fails, try 3.12 (`python3.12 -m venv .venv`).
+
+**Q. It won't start, failing with `ModuleNotFoundError: No module named 'mcp.server.fastmcp'`.**
+MCP SDK 2.0.0 (released 2026-07-28) renamed the `FastMCP` class to `MCPServer`. This repository supports
+both 1.x and 2.x, so **updating the code** resolves it (`./update.sh` or `git pull`). If you must stay on an
+older revision of the code, pin with `pip install "mcp[cli]<2"` instead.
 
 ## Tools Don't Appear / Changes Aren't Applied
 **Q. The `fugaku` tools don't show up in Claude Code.**

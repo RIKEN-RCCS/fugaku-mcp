@@ -35,7 +35,7 @@ echo "更新後のバージョン: $(cat VERSION 2>/dev/null || echo '?')"
 # 依存（mcp）の更新（venvがあれば）
 if [ -x .venv/bin/pip ]; then
   echo "== 依存パッケージ更新 =="
-  .venv/bin/pip -q install -U mcp
+  .venv/bin/pip -q install -U "mcp~=2.0"
 fi
 
 echo

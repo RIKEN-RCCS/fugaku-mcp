@@ -5,7 +5,7 @@
 富岳のジョブ操作・ファイル転送・状態確認ができる。X.509証明書認証・依存は mcp のみ。
 
 セットアップ:
-  pip install "mcp[cli]"
+  pip install "mcp[cli]~=2.0"
   export FUGAKU_CERT=/path/to/<account>.pem      # cert+key 結合PEM（必須）
   # HOME/アカウント/グループは未指定なら起動時に証明書から自動検出される
   # 任意の上書き: FUGAKU_HOME FUGAKU_GROUP FUGAKU_ACCOUNT FUGAKU_RSCUNIT
@@ -14,7 +14,10 @@
 Claude Code登録:  .mcp.json 参照
 """
 import os, re, time
-from mcp.server.fastmcp import FastMCP
+try:                                              # mcp>=2.0 で FastMCP → MCPServer に改称
+    from mcp.server.mcpserver import MCPServer as FastMCP
+except ImportError:                               # mcp 1.x（既存venv）互換
+    from mcp.server.fastmcp import FastMCP
 from fugaku_api import FugakuAPI, norm
 import fugaku_policy as policy
 import fugaku_update as updater
