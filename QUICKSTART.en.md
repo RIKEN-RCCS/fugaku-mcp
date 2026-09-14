@@ -151,7 +151,9 @@ from WSL2 under `/mnt/c/...`.
 > - Every path in your configuration file must be a **WSL2 path** (e.g. `/home/<user>/fugaku-mcp/.venv/bin/python`).
 
 > **About native Windows (without WSL)**: the MCP server itself is written using only the Python standard
-> library and is expected to work on native Windows, but **it has not been verified on real hardware yet**.
+> library, and CI (GitHub Actions on Windows) **verifies server startup, the MCP stdio connection, and
+> line-ending/encoding handling every week**. However, **a live connection to Fugaku and use from a real AI
+> client have not been verified yet**.
 > If you try it, note that the venv path becomes `.venv\Scripts\python.exe`, and that you will need to convert
 > the certificate manually (`openssl pkcs12 -in <cert>.p12 -nodes -out <cert>.pem`) in place of `setup_user.sh`.
 > Reports of success or failure are welcome at [Issues](https://github.com/RIKEN-RCCS/fugaku-mcp/issues).

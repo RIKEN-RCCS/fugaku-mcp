@@ -16,7 +16,7 @@ Place a `.mcp.json` in each folder you work in, and it will take effect when you
 Yes — **inside WSL2**. The setup scripts assume bash, `openssl`, and `curl`. See
 ["Using it on Windows (WSL2)" in QUICKSTART](../QUICKSTART.en.md). Copy your certificate from `/mnt/c/...`
 **into your WSL2 home before using it** (permissions do not apply under `/mnt/c`, so your private key cannot
-be protected there). Your AI client must run inside WSL2 too. Native Windows is not yet verified.
+be protected there). Your AI client must run inside WSL2 too. On native Windows, server startup and the MCP connection are verified in CI, but a live connection to Fugaku and use from a real client are not yet verified.
 
 **Q. `python3 -m venv` or `pip install "mcp[cli]~=2.0"` fails.**
 Python 3.10 or later is required. If 3.14 fails, try 3.12 (`python3.12 -m venv .venv`).

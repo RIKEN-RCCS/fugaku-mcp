@@ -151,7 +151,8 @@ sudo apt update && sudo apt install -y python3-venv git openssl
 > - 設定ファイルに書くパスは、すべて**WSL2内のパス**（`/home/<ユーザー名>/fugaku-mcp/.venv/bin/python` など）です。
 
 > **ネイティブWindows（WSLなし）について**: MCPサーバ本体はPython標準ライブラリのみで書かれており、
-> ネイティブWindowsでも動作する見込みですが、**現時点で実機検証をしていません**。
+> CI（GitHub ActionsのWindows環境）で**サーバの起動・MCPのstdio接続・改行/文字コード処理を毎週検証しています**。
+> ただし**富岳への実接続と、実際のAIクライアントからの利用は未検証**です。
 > 試す場合は venv のパスが `.venv\Scripts\python.exe` になる点と、`setup_user.sh` の代わりに
 > 証明書変換（`openssl pkcs12 -in <証明書>.p12 -nodes -out <証明書>.pem`）を手動で行う必要がある点にご注意ください。
 > うまくいった／いかなかった場合は [Issue](https://github.com/RIKEN-RCCS/fugaku-mcp/issues) でお知らせいただけると助かります。
