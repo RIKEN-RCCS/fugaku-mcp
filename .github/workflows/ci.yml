@@ -71,7 +71,8 @@ jobs:
           else
             pip install -r requirements.txt
           fi
-          pip show mcp | head -2
+          # ※ `pip show mcp | head` は head がパイプを閉じ、Actions の pipefail 下で失敗扱いになるので使わない
+          python -c "import importlib.metadata as m; print('mcp', m.version('mcp'))"
 
       - name: ダミー証明書を生成（富岳には接続しない）
         shell: bash
