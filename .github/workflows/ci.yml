@@ -1,0 +1,90 @@
+name: ci
+
+# 上流 SDK（mcp）の更新で「手元は動くのに新規インストールだけが壊れる」事故（2026-08、v1.6.3 で対応）を
+# 早期に検知するため、push / PR に加えて週次でも「requirements.txt からの新規インストール」を検証する。
+# 富岳には接続しない（ダミー証明書を使用）。本物の証明書を CI に置いてはならない。
+#
+# 注意: 公開リポでは、60日間リポジトリに動きがないとスケジュール実行が GitHub により自動停止される。
+#       停止時は Actions タブから再有効化すること。スケジュール実行の失敗は、cron を最後に編集した人へメール通知される。
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "17 0 * * 1"   # 毎週月曜 00:17 UTC（09:17 JST）
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  consistency:
+    name: 版数・構文チェック
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: VERSION / plugin.json / marketplace.json の版数一致
+        run: |
+          python3 - <<'PY'
+          import json, sys
+          v = open("VERSION").read().strip()
+          p = json.load(open(".claude-plugin/plugin.json"))["version"]
+          m = json.load(open(".claude-plugin/marketplace.json"))["plugins"][0]["version"]
+          print(f"VERSION={v} plugin.json={p} marketplace.json={m}")
+          if not v == p == m:
+              sys.exit("版数が一致していません（リリース時は VERSION・plugin.json・marketplace.json の3点セットで更新すること）")
+          PY
+
+      - name: Python / シェルの構文
+        run: |
+          python3 -m py_compile fugaku_api.py fugaku_mcp.py fugaku_policy.py fugaku_update.py test_client.py tests/*.py
+          for f in *.sh tests/*.sh; do bash -n "$f"; done
+
+  smoke:
+    name: smoke (${{ matrix.os }}, py${{ matrix.python }}, mcp ${{ matrix.mcp }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # pinned: 新規利用者が今日 requirements.txt から得る版
+          - { os: ubuntu-latest,  python: "3.10", mcp: pinned }
+          - { os: ubuntu-latest,  python: "3.14", mcp: pinned }
+          - { os: macos-latest,   python: "3.12", mcp: pinned }
+          - { os: windows-latest, python: "3.12", mcp: pinned }
+          # legacy-1.x: venv を作り直さない既存利用者（mcp 1.x のまま）を壊していないか
+          - { os: ubuntu-latest,  python: "3.12", mcp: legacy-1.x }
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: 依存を新規インストール
+        shell: bash
+        run: |
+          python -m pip install --upgrade pip
+          if [ "${{ matrix.mcp }}" = "legacy-1.x" ]; then
+            pip install "mcp<2"
+          else
+            pip install -r requirements.txt
+          fi
+          pip show mcp | head -2
+
+      - name: ダミー証明書を生成（富岳には接続しない）
+        shell: bash
+        env:
+          MSYS_NO_PATHCONV: "1"   # Windows（Git Bash）で -subj の先頭 / がパスに変換されるのを防ぐ
+        run: |
+          openssl req -x509 -newkey rsa:2048 -nodes -days 1 -subj "/CN=fugaku-mcp-ci" \
+            -keyout "$RUNNER_TEMP/k.pem" -out "$RUNNER_TEMP/c.pem"
+          cat "$RUNNER_TEMP/c.pem" "$RUNNER_TEMP/k.pem" > "$RUNNER_TEMP/dummy.pem"
+
+      - name: スモークテスト
+        shell: bash
+        env:
+          # テスト自身の表示だけを UTF-8 にする（open() の既定エンコーディングは変えない＝監査ログ検査が意味を持つ）
+          PYTHONIOENCODING: utf-8
+        run: FUGAKU_CERT="$RUNNER_TEMP/dummy.pem" python tests/ci_smoke.py
