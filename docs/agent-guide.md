@@ -13,12 +13,12 @@
 
 ## ジョブの投げ方（run_job）
 - 例: `run_job(commands="./a.out", name="run1", nodes=1, elapse="00:30:00", rscgrp="small")`
-- `name`: 英字始まり・英数と `. - _ @`・63文字以内。
+- `name`: 英字始まり・英数と `. - _ @`・63文字以内。**省略すると一意な名前が自動で付く**（戻り値の `name` で後から `fetch_result` できる）。複数のジョブを並行して流すときは、名前を重複させないこと（同名だとスクリプトと結果ファイルを上書きし合う）。
 - `nodes`: ノード数。1ノード = 48計算コア（A64FX, aarch64）。
 - `elapse`: 経過時間上限 `HH:MM:SS`（例 `00:30:00`）。リソースグループの上限以内にする。
 - `rscgrp`: リソースグループ（後述）。課金グループ(`-g`)は `account_info` の `group` が自動付与。
-- `extra_qopt`: 追加の `pjsub` オプションを渡せる（MPIの `--mpi` 等）。
-- 出力は `~/mcp-jobs/<name>.result`。戻り値 `result` に本文。後から `fetch_result(name)` でも取得可。
+- `extra_qopt`: 追加の `pjsub` オプションを渡せる（MPIの `--mpi`、`-x`、`--llio`、`--bulk` 等）。**ただし `node`・`elapse`・`rscgrp`（`-L`）と課金グループ（`-g`）・ジョブ名（`-N`）は指定できない**（資源上限の迂回防止）。これらは `nodes`/`elapse`/`rscgrp`/`name` 引数で指定する。
+- 出力は `~/mcp-jobs/<name>.result`。戻り値 `result` に本文。後から `fetch_result(name)` でも取得可。前回同名ジョブの結果は投入時に消えるので、`result` が空で `note` が付いていたら**今回のジョブは実行されなかった**と判断する（`warning` に最終状態が EXT 以外であることが出る）。
 - **run_job では `#PJM` ディレクティブを自分で書かなくてよい**（node/rscgrp/elapse/-N/-g はツールが `pjsub` 引数で付与する）。低レベルに制御したい場合のみ `submit_job` でスクリプト全体を渡すか `extra_qopt` を使う。
 
 ## リソースグループ（rscgrp）
@@ -104,12 +104,15 @@
 - **submit がタイムアウト**: 投入は成功していることがある。`list_jobs` で確認してから再投入（**二重投入注意**）。
 - **ファイルが 409**: 既存ファイル。`stage_in` は上書きするので通常問題なし。
 - **Permission denied / IO Error**: 自分の権限外（他ユーザ/システム領域）への操作。**正常な拒否**。自分の HOME 配下で操作する。
-- **コマンドが安全策で拒否**: 危険コマンド（`rm -rf` 等）はポリシーで拒否。意図を変えるか許可された範囲で。
+- **コマンドが安全策で拒否**: 危険コマンド（`rm -rf`・`rm -Rf`・`rm -r -f` 等）はポリシーで拒否。意図を変えるか許可された範囲で（例: 消す対象を絞って `rm -f <file>`）。
+- **「extra_qopt で node は指定できません」等**: ノード数・経過時間・リソースグループは `nodes`/`elapse`/`rscgrp` 引数で指定する。`submit_job` のスクリプトに `#PJM -L` を書く場合は、引数と同じ値にする（食い違うと拒否）。
+- **「隠しファイル・隠しディレクトリ配下は読み書きできません」**: `stage_in`/`stage_out` の `local_path` に `~/.ssh` などは使えない（鍵の保護）。作業用の通常ディレクトリを指定する。
 - **"No Jobs."**: ジョブ0件の**正常応答**（エラーではない）。
 - **MPIでプロセス数が合わない**: `mpiexec -n` の総数と `--mpi proc=` と `node` の整合を確認。
 
 ## パス・ファイル・ストレージ（LLIO）
 - ファイルAPIは**絶対パス**。`~` は展開されない（`run_command` 内では展開される）。一覧は `run_command("ls -la <dir>")`。
+- `stage_in` は `content`（文字列）か `local_path`（手元ファイル）の**どちらか一方が必須**。空ファイルを作るなら `run_command("touch <path>")`。
 - ストレージ階層: `/home`（グループ領域・小容量）、大容量データは**第2階層 `/vol000N`**（FEFS）。
   計算ノード直近の高速IOは**第1階層（LLIO）**が担う。
 - **ジョブから `/vol000N` を読み書きするときは `-x PJM_LLIO_GFSCACHE=/vol000N` を指定**（第2階層キャッシュの対象ボリューム指定。
@@ -137,9 +140,9 @@
 - 公式ユーザガイド／生成AIチャット AskDona（富岳サポートサイト）を参照（将来エージェント連携を予定）。
 
 ## 公式マニュアル
-- 利用およびジョブ実行編: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-use-1.52/build/ja/index.html
+- 利用およびジョブ実行編: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-use-1.53/build/ja/index.html
   （5.3 ステップジョブ / 5.4 バルクジョブ / 8. 階層化ストレージ・LLIO を含む）
-- 言語開発環境編（コンパイラ・PAPI）: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.41/build/ja/index.html
+- 言語開発環境編（コンパイラ・PAPI）: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.43/build/ja/index.html
 - Fugaku Spack Guide: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/fugakuspackguide/build/ja/index.html
 - スタートアップガイド / マニュアル一覧（プロファイラ使用手引書ほか）: https://www.r-ccs.riken.jp/fugaku/user-manuals/
 - リソースグループ構成: https://www.fugaku.r-ccs.riken.jp/resource_group_config

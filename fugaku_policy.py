@@ -11,6 +11,10 @@ run_command の許可/拒否・ファイルパス制限・ジョブ資源上限�
   FUGAKU_MAX_NODES        submit_job の最大ノード数（既定 8）
   FUGAKU_MAX_ELAPSE_SEC   submit_job の最大経過時間秒（既定 86400）
   FUGAKU_ALLOWED_RSCGRP   許可リソースグループ（カンマ区切り。未指定で制限なし）
+  FUGAKU_MAX_BULK         バルクジョブのサブジョブ数上限（未指定・0 で制限なし）
+  FUGAKU_LOCAL_ROOTS      stage_in/stage_out で手元の読み書きを許可するディレクトリ
+                          （macOS/Linux はコロン、Windows はセミコロン区切り。未指定なら制限なし。
+                           隠しファイル・隠しディレクトリ配下は設定に関わらず常に拒否）
   FUGAKU_AUDIT_LOG        監査ログのパス（指定時、全ツール呼び出しをJSONL追記）
 """
 import os, re, json, time, shlex
@@ -24,8 +28,8 @@ class PolicyError(ValueError):
 CMD_MODE = os.environ.get("FUGAKU_CMD_MODE", "denylist").lower()
 
 # 明白に破壊的なパターン（denylist/allowlist両方で常に拒否）
+# ※ rm の再帰＋強制削除（-rf / -Rf / -r -f / --recursive --force 等）は _rm_recursive_force で判定する
 _DENY_PATTERNS = [
-    r"\brm\s+-[a-zA-Z]*r[a-zA-Z]*f|\brm\s+-[a-zA-Z]*f[a-zA-Z]*r",  # rm -rf / -fr
     r"\brm\b[^;&|\n]*\s(/|~|\$HOME|/home|/vol)(\s|/|\*|$)",         # rm 対象がHOME/ルート系(同一コマンド内に限定)
     r":\s*\(\s*\)\s*\{",            # フォークボム
     r"\bmkfs\b", r"\bdd\s+if=", r"\bshred\b",
@@ -67,9 +71,38 @@ def _first_exec(seg):
     return toks[i] if i < len(toks) else ""
 
 
+def _rm_recursive_force(cmd):
+    """rm に再帰(-r/-R/--recursive)と強制(-f/--force)が両方付いているか。
+    フラグの大文字・分割・順序（-Rf, -r -f, -fR, --recursive --force）や xargs rm / find -exec rm も拾う。"""
+    for seg in _segments(cmd):
+        try:
+            toks = shlex.split(seg)
+        except ValueError:
+            toks = seg.split()
+        for i, t in enumerate(toks):
+            if t != "rm" and not t.endswith("/rm"):
+                continue
+            recursive = force = False
+            for a in toks[i + 1:]:
+                if a == "--":
+                    break
+                if a in ("--recursive",):
+                    recursive = True
+                elif a in ("--force",):
+                    force = True
+                elif a.startswith("-") and not a.startswith("--"):
+                    recursive |= ("r" in a or "R" in a)
+                    force |= "f" in a
+            if recursive and force:
+                return True
+    return False
+
+
 def check_command(cmd: str):
     """run_command のコマンドを検査。違反時 PolicyError。"""
-    for rx in _DENY:                       # denylistは常に適用
+    if _rm_recursive_force(cmd):           # denylistは常に適用
+        raise PolicyError("危険なコマンドとして拒否: rm の再帰＋強制削除（-rf 等）")
+    for rx in _DENY:
         if rx.search(cmd):
             raise PolicyError(f"危険なコマンドとして拒否: /{rx.pattern}/ に一致")
     if CMD_MODE == "allowlist":
@@ -93,6 +126,25 @@ def check_path(path: str):
         raise PolicyError("絶対パス（または ~ 始まり）を指定してください")
     if PATH_ROOTS and not any(path.startswith(r) for r in PATH_ROOTS):
         raise PolicyError(f"許可パス {PATH_ROOTS} の配下のみ操作できます: {path}")
+
+
+# ---- 手元（クライアント側）パス制限 ----
+LOCAL_ROOTS = [os.path.realpath(os.path.expanduser(p))
+               for p in os.environ.get("FUGAKU_LOCAL_ROOTS", "").split(os.pathsep) if p]
+
+
+def check_local_path(path: str) -> str:
+    """stage_in/stage_out が手元で読み書きするパスを検査し、解決済みの絶対パスを返す。
+
+    隠しファイル・隠しディレクトリ（~/.ssh、~/.fugaku の証明書、各種設定）は常に拒否する。
+    富岳側の文書に仕込まれた指示でエージェントが誘導され、手元の鍵や設定を上書き・持ち出すのを防ぐため。
+    シンボリックリンクは解決してから判定する（リンク経由の回り込み防止）。"""
+    rp = os.path.realpath(os.path.expanduser(path))
+    if any(part.startswith(".") for part in rp.split(os.sep) if part):
+        raise PolicyError(f"隠しファイル・隠しディレクトリ配下は読み書きできません（鍵・設定の保護）: {rp}")
+    if LOCAL_ROOTS and not any(rp == r or rp.startswith(r.rstrip(os.sep) + os.sep) for r in LOCAL_ROOTS):
+        raise PolicyError(f"手元の許可ディレクトリ {LOCAL_ROOTS} の配下のみ読み書きできます: {rp}")
+    return rp
 
 
 # ---- ジョブ資源上限 ----
@@ -119,6 +171,87 @@ def check_job(nodes: int, elapse: str, rscgrp: str):
         raise PolicyError(f"elapse={elapse} は上限 {MAX_ELAPSE_SEC}秒 を超過")
     if ALLOWED_RSCGRP and rscgrp not in ALLOWED_RSCGRP:
         raise PolicyError(f"rscgrp={rscgrp!r} は許可外（許可: {ALLOWED_RSCGRP}）")
+
+
+# ---- pjsub オプション（extra_qopt と #PJM 指示子）の検査 ----
+# nodes/elapse/rscgrp と課金グループは専用引数でのみ指定させる。extra_qopt や #PJM で上書きできると
+# check_job の上限（FUGAKU_MAX_NODES 等）が意味を失うため、投入される全オプションを検査する。
+MAX_BULK = int(os.environ.get("FUGAKU_MAX_BULK", "0") or 0)
+_RESERVED_RSC = ("node", "elapse", "rscgrp", "rscunit")
+_PJSUB_OPTS = {"-L": "rsc", "--rsc-list": "rsc", "-g": "group", "--gname": "group",
+               "-N": "name", "--name": "name", "--sparam": "sparam"}
+
+
+def _parse_pjsub_opts(opts, where):
+    """pjsub オプション文字列を [(種別, 値)] に分解する（検査用）。-Lx / --rsc-list=x の連結形も扱う。"""
+    try:
+        toks = shlex.split(opts or "")
+    except ValueError as e:
+        raise PolicyError(f"{where} を解釈できません: {e}")
+    out, i = [], 0
+    while i < len(toks):
+        t = toks[i]
+        i += 1
+        if t == "--bulk":
+            out.append(("bulk", None))
+            continue
+        for flag, kind in _PJSUB_OPTS.items():
+            joined = flag + ("=" if flag.startswith("--") else "")
+            if t == flag:
+                out.append((kind, toks[i] if i < len(toks) else ""))
+                i += 1
+                break
+            if t.startswith(joined) and len(t) > len(joined):
+                out.append((kind, t[len(joined):]))
+                break
+    return out
+
+
+def check_submit(nodes, elapse, rscgrp, *, rscunit, group, extra_qopt="", script=""):
+    """投入前の総合検査: 資源上限（check_job）に加え、extra_qopt と #PJM 指示子による上書きを拒否する。
+
+    extra_qopt: node/elapse/rscgrp/rscunit・課金グループ・ジョブ名の指定を一律拒否（専用引数で指定させる）。
+    #PJM 指示子: 引数と同じ値なら許可、食い違えば拒否（コマンドラインとの優先関係に依存しないように）。"""
+    check_job(nodes, elapse, rscgrp)
+    expected = {"node": str(nodes), "elapse": _elapse_sec(elapse), "rscgrp": rscgrp, "rscunit": rscunit}
+    opts = []
+    for line in (script or "").splitlines():
+        s = line.strip()
+        if s.startswith("#PJM"):
+            opts += [(k, v, "#PJM 指示子") for k, v in _parse_pjsub_opts(s[4:], "#PJM 指示子")]
+    opts += [(k, v, "extra_qopt") for k, v in _parse_pjsub_opts(extra_qopt, "extra_qopt")]
+
+    bulk, sparam = False, None
+    for kind, val, where in opts:
+        if kind == "rsc":
+            for item in (val or "").split(","):
+                key, _, v = item.strip().partition("=")
+                key = key.strip()
+                if key not in _RESERVED_RSC:
+                    continue
+                if where == "extra_qopt":
+                    raise PolicyError(f"extra_qopt で {key} は指定できません（nodes / elapse / rscgrp 引数で指定してください）")
+                same = _elapse_sec(v.strip()) == expected[key] if key == "elapse" else v.strip() == expected[key]
+                if not same:
+                    raise PolicyError(f"#PJM 指示子の {key}={v.strip()} が引数と食い違います（引数側: {expected[key]}）")
+        elif kind == "group":
+            if where == "extra_qopt":
+                raise PolicyError("extra_qopt で課金グループ（-g/--gname）は指定できません（自分のグループが自動で付与されます）")
+            if not group or val != group:
+                raise PolicyError(f"#PJM 指示子の課金グループ {val!r} が自分のグループ {group!r} と食い違います")
+        elif kind == "name" and where == "extra_qopt":
+            raise PolicyError("extra_qopt でジョブ名（-N/--name）は指定できません（name 引数で指定してください）")
+        elif kind == "bulk":
+            bulk = True
+        elif kind == "sparam":
+            sparam = val
+    if bulk and MAX_BULK:
+        m = re.fullmatch(r"\s*(\d+)\s*-\s*(\d+)\s*", sparam or "")
+        if not m:
+            raise PolicyError(f"バルクジョブの --sparam を解釈できません（例 \"0-9\"）: {sparam!r}")
+        n = int(m.group(2)) - int(m.group(1)) + 1
+        if n > MAX_BULK:
+            raise PolicyError(f"バルクジョブのサブジョブ数 {n} は上限 {MAX_BULK} を超過")
 
 
 # ---- 監査ログ ----
@@ -173,5 +306,7 @@ def summary() -> dict:
         "path_roots": PATH_ROOTS or "(接頭辞制限なし)",
         "max_nodes": MAX_NODES, "max_elapse_sec": MAX_ELAPSE_SEC,
         "allowed_rscgrp": ALLOWED_RSCGRP or "(制限なし)",
+        "max_bulk": MAX_BULK or "(制限なし)",
+        "local_roots": LOCAL_ROOTS or "(制限なし・隠しファイルは常に拒否)",
         "audit_log": AUDIT_LOG or "(無効)",
     }

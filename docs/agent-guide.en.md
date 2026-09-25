@@ -12,12 +12,12 @@ This file is the knowledge base that the `fugaku_help` tool returns to the agent
 
 ## How to submit a job (run_job)
 - Example: `run_job(commands="./a.out", name="run1", nodes=1, elapse="00:30:00", rscgrp="small")`
-- `name`: must start with a letter; alphanumerics plus `. - _ @`; within 63 characters.
+- `name`: must start with a letter; alphanumerics plus `. - _ @`; within 63 characters. **If omitted, a unique name is generated automatically** (use the returned `name` with `fetch_result` later). When running several jobs in parallel, do not reuse a name (jobs with the same name overwrite each other's script and result file).
 - `nodes`: number of nodes. 1 node = 48 compute cores (A64FX, aarch64).
 - `elapse`: elapsed time limit `HH:MM:SS` (e.g. `00:30:00`). Keep it within the resource group's limit.
 - `rscgrp`: resource group (described below). The billing group (`-g`) is set automatically from the `group` in `account_info`.
-- `extra_qopt`: lets you pass additional `pjsub` options (e.g. `--mpi` for MPI).
-- Output goes to `~/mcp-jobs/<name>.result`, with the body in the `result` return value. You can also retrieve it later with `fetch_result(name)`.
+- `extra_qopt`: lets you pass additional `pjsub` options (e.g. `--mpi` for MPI, `-x`, `--llio`, `--bulk`). **However, `node`, `elapse`, `rscgrp` (`-L`), the billing group (`-g`) and the job name (`-N`) cannot be set here** (to prevent bypassing resource limits). Use the `nodes`/`elapse`/`rscgrp`/`name` arguments for these.
+- Output goes to `~/mcp-jobs/<name>.result`, with the body in the `result` return value. You can also retrieve it later with `fetch_result(name)`. The result of a previous job with the same name is deleted at submission, so if `result` is empty and a `note` is attached, **this job did not run** (`warning` reports a final state other than EXT).
 - **With run_job you do not need to write `#PJM` directives yourself** (node/rscgrp/elapse/-N/-g are added by the tool as `pjsub` arguments). Only if you want low-level control should you pass an entire script with `submit_job` or use `extra_qopt`.
 
 ## Resource group (rscgrp)
@@ -103,12 +103,15 @@ Fugaku provides Spack for OSS package management (the public instance = pre-inst
 - **submit times out**: the submission may have succeeded. Check with `list_jobs` before resubmitting (**beware of duplicate submission**).
 - **File returns 409**: the file already exists. `stage_in` overwrites, so this is usually not a problem.
 - **Permission denied / IO Error**: an operation outside your permissions (another user's or a system area). This is a **normal rejection**. Operate under your own HOME.
-- **Command rejected by the safety policy**: dangerous commands (`rm -rf`, etc.) are rejected by policy. Change your intent or stay within what is allowed.
+- **Command rejected by the safety policy**: dangerous commands (`rm -rf`, `rm -Rf`, `rm -r -f`, etc.) are rejected by policy. Change your intent or stay within what is allowed (e.g. narrow the target and use `rm -f <file>`).
+- **"node cannot be set in extra_qopt" and similar**: set node count, elapsed time and resource group with the `nodes`/`elapse`/`rscgrp` arguments. If you write `#PJM -L` in a `submit_job` script, use the same values as the arguments (differing values are rejected).
+- **"cannot read or write under hidden files or directories"**: `local_path` for `stage_in`/`stage_out` cannot be under `~/.ssh` and the like (to protect keys). Use an ordinary working directory.
 - **"No Jobs."**: a **normal response** meaning zero jobs (not an error).
 - **MPI process counts don't match**: verify consistency between the total in `mpiexec -n`, `--mpi proc=`, and `node`.
 
 ## Paths, files, storage (LLIO)
 - The file API uses **absolute paths**. `~` is not expanded (it is expanded within `run_command`). List with `run_command("ls -la <dir>")`.
+- `stage_in` requires **exactly one** of `content` (a string) or `local_path` (a local file). To create an empty file, use `run_command("touch <path>")`.
 - Storage tiers: `/home` (group area, small capacity); large data lives on the **second tier `/vol000N`** (FEFS).
   Fast I/O close to the compute nodes is provided by the **first tier (LLIO)**.
 - **When a job reads/writes `/vol000N`, specify `-x PJM_LLIO_GFSCACHE=/vol000N`** (selects the volume for the second-tier cache;
@@ -136,9 +139,9 @@ Fugaku provides Spack for OSS package management (the public instance = pre-inst
 - Refer to the official user guide / the generative AI chat AskDona (Fugaku support site) (agent integration is planned for the future).
 
 ## Official manuals
-- Use and job execution: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-use-1.52/build/en/index.html
+- Use and job execution: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-use-1.53/build/en/index.html
   (includes 5.3 Step jobs / 5.4 Bulk jobs / 8. Layered storage & LLIO)
-- Language and development environment (compilers, PAPI): https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.41/build/en/index.html
+- Language and development environment (compilers, PAPI): https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.43/build/en/index.html
 - Fugaku Spack Guide: https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/fugakuspackguide/build/en/index.html
 - Startup guide / manual list (incl. Profiler User's Guide): https://www.r-ccs.riken.jp/en/fugaku/user-manuals/
 - Resource group configuration: https://www.fugaku.r-ccs.riken.jp/resource_group_config

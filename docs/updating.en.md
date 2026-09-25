@@ -29,11 +29,19 @@ After updating, **fully restart the MCP client (Claude Code / Codex / vibe-local
 > Reinstalling `mcp` is not required (the code works with both 1.x and 2.x).
 > Once you are on 1.6.2 or later, `./update.sh` works normally from then on.
 
+### If you installed it as a Claude Code plugin
+The plugin's files are not a git clone, so `./update.sh` and `git pull` do not apply. Update with either:
+```bash
+claude plugin update fugaku@fugaku-mcp
+```
+or from the `/plugin` screen in Claude Code, then **restart Claude Code**.
+Dependencies are reinstalled automatically when the plugin starts. The `check_update` tool and the startup notification also show the steps that match how you installed it.
+
 ## 3. Auto-update (opt-in, use with care)
 ```json
 "env": { "FUGAKU_AUTO_UPDATE": "1" }   // set in .mcp.json, etc.
 ```
-Runs `update.sh` (git pull) automatically at startup.
+Runs `update.sh` (git pull) automatically at startup. **This only works for a git clone** (for a plugin install it is skipped and the update steps are shown instead).
 
 > ⚠️ **Caution**: auto-update means **code that runs with your Fugaku privileges is fetched and executed
 > automatically** (a supply-chain risk if the repository is compromised). For shared/production environments,

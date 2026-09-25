@@ -13,7 +13,7 @@
 起動確認:  python3 fugaku_mcp.py
 Claude Code登録:  .mcp.json 参照
 """
-import os, re, time
+import os, re, time, secrets
 try:                                              # mcp>=2.0 で FastMCP → MCPServer に改称
     from mcp.server.mcpserver import MCPServer as FastMCP
 except ImportError:                               # mcp 1.x（既存venv）互換
@@ -62,11 +62,28 @@ def ctx():
         _ctx["account"] = _ctx["account"] or lines[1]
         _ctx["group"]   = _ctx["group"]   or lines[2]
         policy.set_identity(_ctx["account"])   # 監査ログにアカウントを付与
+    if not _ctx["home"]:
+        # 検出に失敗したまま進めると jobdir が "None/mcp-jobs" になり、誤った場所へ書き込もうとする。
+        # 失敗は保存しない（次の呼び出しで再試行する）。
+        detail = d.get("error") or d.get("raw") or f"http={d.get('http')}"
+        raise RuntimeError(f"富岳側の HOME を自動検出できません（{detail}）。"
+                           "証明書と疎通を確認するか、FUGAKU_HOME を設定してください。")
     return _ctx
 
 
 def jobdir():
     return f"{ctx()['home']}/mcp-jobs"   # ジョブスクリプト/出力の置き場（ユーザーHOME配下）
+
+
+def _check_name(name):
+    """ジョブ名の検証。パスやシェルに埋め込むため、英字始まり・英数と . - _ @ のみに限る（'..' 等を排除）。"""
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9._@-]{0,62}", name or ""):
+        raise ValueError(f"ジョブ名が不正です: {name!r}（英字始まり・英数と . - _ @ のみ・63文字以内）")
+
+
+def _auto_name():
+    """name 省略時の一意なジョブ名。固定名だと並行実行でスクリプト/結果ファイルを上書きし合うため。"""
+    return f"job-{time.strftime('%m%d-%H%M%S')}-{secrets.token_hex(2)}"
 
 
 # ---- リモート監査ログ（富岳上の <FUGAKU_AUDIT_REMOTE>/<account>.jsonl へ非同期・バッチ追記）----
@@ -172,7 +189,7 @@ def search_manual(query: str, lang: str = "ja", top: int = 3) -> dict:
         hay = ((pg.get("title_" + lang) or "") + " " + pg.get("kw", "")).lower()
         return sum(hay.count(t.lower()) for t in toks) + (2 if q.lower() in hay else 0)
 
-    hits = []
+    hits, failed = [], []
     for pg in sorted(idx["pages"], key=score, reverse=True):
         if score(pg) <= 0:
             continue
@@ -180,7 +197,8 @@ def search_manual(query: str, lang: str = "ja", top: int = 3) -> dict:
         try:
             raw = _ur.urlopen(_ur.Request(url, headers={"User-Agent": "fugaku-mcp"}),
                               timeout=15).read().decode("utf-8", "replace")
-        except Exception:
+        except Exception as e:
+            failed.append(f"{url} ({getattr(e, 'code', type(e).__name__)})")
             continue
         raw = re.sub(r"(?is)<(script|style).*?</\1>", " ", raw)      # HTML→段落テキスト
         raw = re.sub(r"(?i)</(p|div|li|h[1-6]|tr|section)>", "\n\n", raw)
@@ -206,15 +224,22 @@ def search_manual(query: str, lang: str = "ja", top: int = 3) -> dict:
                      "excerpt": excerpt or "(一致段落なし。URLを参照)"})
         if len(hits) >= max(1, top):
             break
-    return {"query": q, "lang": lang, "results": hits,
-            "manual_index": idx["guides"]["use"][lang] + "index.html",
-            "note": "該当が薄い場合は manual_index か https://www.r-ccs.riken.jp/fugaku/user-manuals/ を参照。"}
+    ret = {"query": q, "lang": lang, "results": hits,
+           "manual_index": idx["guides"]["use"][lang] + "index.html",
+           "note": "該当が薄い場合は manual_index か https://www.r-ccs.riken.jp/fugaku/user-manuals/ を参照。"}
+    if failed:
+        # 取得失敗を黙って捨てると「該当なし」と区別できない（マニュアルの版上げでURLが変わった等）
+        ret["fetch_errors"] = failed[:5]
+        if not hits:
+            ret["error"] = ("マニュアルページを取得できませんでした。URL が変わった可能性があります。"
+                            "https://www.r-ccs.riken.jp/fugaku/user-manuals/ を直接参照してください。")
+    return ret
 
 
 @mcp.tool()
 def check_update() -> dict:
     """fugaku-mcp の更新があるか確認する（公開リポの最新バージョンと比較）。
-    update_available が true なら、リポジトリで ./update.sh を実行して更新（更新後はクライアント再起動）。"""
+    update_available が true なら how_to_update の手順で更新する（導入方法に応じた手順を返す）。"""
     policy.audit("check_update", {})
     return updater.check(force=True)
 
@@ -247,11 +272,15 @@ def run_command(command: str) -> dict:
 
 @mcp.tool()
 def stage_in(remote_path: str, content: str = "", local_path: str = "") -> dict:
-    """ファイルを富岳へ転送する。content（文字列）か local_path（手元ファイル）のどちらかを指定。
-    既存ファイルは自動で上書きする。"""
+    """ファイルを富岳へ転送する。content（文字列）か local_path（手元ファイル）のどちらか一方を指定。
+    既存ファイルは自動で上書きする。手元の隠しファイル（~/.ssh 等）は読み出せない。"""
     policy.check_path(remote_path)
+    if bool(content) == bool(local_path):
+        # 両方空だと既存のリモートファイルを 0 バイトで上書きしてしまうため拒否する
+        raise ValueError("content と local_path のどちらか一方だけを指定してください"
+                         "（空ファイルを作る場合は run_command('touch <path>') を使ってください）")
     if local_path:
-        with open(local_path, "rb") as f:
+        with open(policy.check_local_path(local_path), "rb") as f:
             data = f.read()
     else:
         data = content.encode()
@@ -261,8 +290,11 @@ def stage_in(remote_path: str, content: str = "", local_path: str = "") -> dict:
 
 @mcp.tool()
 def stage_out(remote_path: str, local_path: str = "") -> dict:
-    """富岳からファイルを取得する。local_path 指定時はそこへ保存、未指定なら本文を返す（テキスト想定）。"""
+    """富岳からファイルを取得する。local_path 指定時はそこへ保存、未指定なら本文を返す（テキスト想定）。
+    手元の隠しファイル・隠しディレクトリ（~/.ssh 等）には保存できない。"""
     policy.check_path(remote_path)
+    if local_path:
+        local_path = policy.check_local_path(local_path)
     policy.audit("stage_out", {"remote_path": remote_path, "local_path": local_path})
     code, body = api.download(remote_path)
     if code != 200:
@@ -278,22 +310,26 @@ def _result_path(name: str) -> str:
     return f"{jobdir()}/{name}.result"
 
 
-def _submit_core(script, name, nodes, elapse, rscgrp, extra_qopt):
-    """ジョブ投入の共通処理（投入→jobid抽出→タイムアウト時はキュー照合で復旧）。"""
-    if not re.match(r"^[A-Za-z][A-Za-z0-9._@-]{0,62}$", name):
-        raise ValueError("ジョブ名は英字始まり・英数と . - _ @ のみ・63文字以内")
-    policy.check_job(nodes, elapse, rscgrp)
+def _submit_core(script, name, nodes, elapse, rscgrp, extra_qopt, clear_path=None):
+    """ジョブ投入の共通処理（投入→jobid抽出→タイムアウト時はキュー照合で復旧）。
+    clear_path: 投入直前に消すファイル（run_job の結果ファイル。前回分を今回の結果と誤認させないため）。"""
+    _check_name(name)
     # 改行を LF に正規化する。CRLF が混ざると富岳側の bash が `\r: command not found` で失敗するため
     # （Windows クライアントや Windows で編集したスクリプトから混入しやすい）。
     script = script.replace("\r\n", "\n").replace("\r", "\n")
+    group = ctx().get("group")
+    # 資源上限に加え、extra_qopt / #PJM 指示子による nodes・elapse・rscgrp・課金グループの上書きを拒否
+    policy.check_submit(nodes, elapse, rscgrp, rscunit=RSCUNIT, group=group,
+                        extra_qopt=extra_qopt, script=script)
     jd = jobdir()
     api.command(f"mkdir -p {jd}")
     remote = f"{jd}/{name}.sh"
     up_res = api.put_file(remote, script.encode())
     if norm(up_res).get("http") != 200:
         return {"step": "upload", **norm(up_res)}
+    if clear_path:
+        api.command(f"rm -f {clear_path}")
 
-    group = ctx().get("group")
     qopt = (f'-L "rscunit={RSCUNIT}" -L "rscgrp={rscgrp}" -L "node={nodes}" '
             f'-L "elapse={elapse}" -N {name} ')
     if group:      qopt += f"-g {group} "
@@ -309,12 +345,17 @@ def _submit_core(script, name, nodes, elapse, rscgrp, extra_qopt):
             ret["subjobid"] = m.group(1) + m.group(2)
         return ret
     # タイムアウト等でjobid不明 → 投入は成功している可能性。名前で実行キューを照合して復旧。
+    # 前方一致だと run1 が run10 を拾うので完全一致。同名が複数あれば最も新しい（jobid が最大の）ものを採る。
     if d.get("http") is None:
         time.sleep(5)
-        for j in (norm(api.queue(limit=50)).get("output") or []):
-            if str(j.get("name", "")).startswith(name):
-                return {"http": None, "jobid": str(j.get("jobid")),
-                        "note": "submitはタイムアウトしたがキューに発見（投入成功）", "job": j}
+        same = [j for j in (norm(api.queue(limit=50)).get("output") or [])
+                if str(j.get("name", "")) == name]
+        if same:
+            j = max(same, key=lambda j: int(re.sub(r"\D", "", str(j.get("jobid"))) or 0))
+            note = "submitはタイムアウトしたがキューに発見（投入成功）"
+            if len(same) > 1:
+                note += f"。同名ジョブが {len(same)} 件あり最新を採用（name は一意にすること）"
+            return {"http": None, "jobid": str(j.get("jobid")), "note": note, "job": j}
     return {"step": "submit", **d}
 
 
@@ -331,43 +372,51 @@ def _status_core(jobid):
 
 
 @mcp.tool()
-def submit_job(script: str, name: str = "job", nodes: int = 1,
+def submit_job(script: str, name: str = "", nodes: int = 1,
                elapse: str = "00:10:00", rscgrp: str = "small",
                extra_qopt: str = "") -> dict:
     """バッチジョブを富岳に投入する（低レベル）。完了待ち・結果回収まで一括なら run_job を使う。
 
     script: ジョブスクリプト本文（#!/bin/bash で始まるシェル）。
-    name: ジョブ名（英字始まり・英数と . - _ @ のみ・63文字以内）。
+    name: ジョブ名（英字始まり・英数と . - _ @ のみ・63文字以内）。省略時は一意な名前を自動で付ける。
     nodes: ノード数（上限 FUGAKU_MAX_NODES）。 elapse: 経過時間制限 HH:MM:SS。
-    rscgrp: リソースグループ（例 small）。 extra_qopt: 追加の pjsub オプション。
+    rscgrp: リソースグループ（例 small）。
+    extra_qopt: 追加の pjsub オプション（--mpi / -x / --llio / --bulk 等）。node・elapse・rscgrp と
+                課金グループ・ジョブ名は指定できない（専用引数で指定する）。
     戻り値に jobid を含む。状態は job_status で別途ポーリングすること（submitは同期・低速）。
     """
+    name = name or _auto_name()
     policy.audit("submit_job", {"name": name, "nodes": nodes, "elapse": elapse, "rscgrp": rscgrp})
-    return _submit_core(script, name, nodes, elapse, rscgrp, extra_qopt)
+    return {"name": name, **_submit_core(script, name, nodes, elapse, rscgrp, extra_qopt)}
 
 
 @mcp.tool()
-def run_job(commands: str, name: str = "job", nodes: int = 1, elapse: str = "00:10:00",
+def run_job(commands: str, name: str = "", nodes: int = 1, elapse: str = "00:10:00",
             rscgrp: str = "small", wait_sec: int = 300, extra_qopt: str = "") -> dict:
     """コマンド群を富岳でバッチ実行し、完了まで待って標準出力を自動回収する一括ツール。
 
     commands: 実行したいシェルコマンド（複数行可・シェバン不要）。stdout/stderr は
               {JOBDIR}/<name>.result に集約され、完了時に result として返る。
+    name: 省略時は一意な名前を自動で付ける（戻り値の name で fetch_result できる）。
     wait_sec: 完了待ちの最大秒数。超過時は jobid を返すので後で fetch_result/job_status で確認。
     MPIジョブ: Fujitsu MPI(PLE)は各ランクの標準出力を $HOME/output.<jobid>/ に書き出す（-std/-of は無視）。
               run_job はこれを完了後に自動回収して mpi_output に入れる（回収後は削除）。
     その他の引数は submit_job と同じ（資源上限ポリシーが適用される）。
     """
+    name = name or _auto_name()
+    _check_name(name)
     body = commands.split("\n", 1)[1] if commands.startswith("#!") and "\n" in commands else commands
     result = _result_path(name)
     # cwd を $HOME に固定 → MPIランク出力 $HOME/output.<jobid>/ の場所を決定的にする
     script = f'#!/bin/bash\ncd "$HOME"\n{{\n{body}\n}} > {result} 2>&1\n'
     policy.audit("run_job", {"name": name, "nodes": nodes, "elapse": elapse, "rscgrp": rscgrp})
 
-    sub = _submit_core(script, name, nodes, elapse, rscgrp, extra_qopt)
+    # 前回同名ジョブの結果ファイルを投入直前に消す（今回ジョブが実行されずに終わった場合に、
+    # 古い結果を今回の結果として返さないため）
+    sub = _submit_core(script, name, nodes, elapse, rscgrp, extra_qopt, clear_path=result)
     jid = sub.get("jobid")
     if not jid:
-        return {"phase": "submit_failed", **sub}
+        return {"name": name, "phase": "submit_failed", **sub}
 
     waited, interval = 0, 10
     st = _status_core(jid)
@@ -375,12 +424,19 @@ def run_job(commands: str, name: str = "job", nodes: int = 1, elapse: str = "00:
         time.sleep(interval); waited += interval
         st = _status_core(jid)
     if st.get("phase") == "active":
-        return {"jobid": jid, "phase": "active", "status": st.get("status"), "result_path": result,
+        return {"name": name, "jobid": jid, "phase": "active", "status": st.get("status"),
+                "result_path": result,
                 "note": f"{wait_sec}秒以内に未完了。job_status('{jid}') か fetch_result('{name}') で後から確認を。"}
 
     code, data = api.download(result)
-    ret = {"jobid": jid, "phase": st.get("phase"), "status": st.get("status"), "result_path": result,
-           "result": data.decode("utf-8", "replace") if code == 200 else f"(結果取得失敗 http={code})"}
+    ret = {"name": name, "jobid": jid, "phase": st.get("phase"), "status": st.get("status"),
+           "result_path": result,
+           "result": data.decode("utf-8", "replace") if code == 200 else None}
+    if code != 200:
+        ret["note"] = (f"結果ファイルがありません（http={code}）。"
+                       f"ジョブが実行されずに終わった可能性があります（status={st.get('status')}）。")
+    if st.get("status") and st.get("status") != "EXT":
+        ret["warning"] = f"ジョブの最終状態は {st.get('status')} です（正常終了は EXT）。"
     # MPIランク出力（$HOME/output.<jid>）があれば回収して片付ける
     mpi = norm(api.command(
         f'd="$HOME/output.{jid}"; if [ -d "$d" ]; then '
@@ -393,6 +449,7 @@ def run_job(commands: str, name: str = "job", nodes: int = 1, elapse: str = "00:
 @mcp.tool()
 def fetch_result(name: str) -> dict:
     """run_job で実行したジョブの結果ファイル({JOBDIR}/<name>.result)を取得する。"""
+    _check_name(name)   # '..' 等でジョブ置き場の外（パス制限の対象外）を読ませない
     result = _result_path(name)
     policy.audit("fetch_result", {"name": name, "result_path": result})
     code, data = api.download(result)
@@ -432,7 +489,11 @@ if __name__ == "__main__":
     print(f"[fugaku-mcp] version: {updater.local_version()}", file=sys.stderr)
 
     # オプトインの自動更新（既定OFF）。自分の富岳権限で動くコードを自動取得・実行するため要注意。
-    if os.environ.get("FUGAKU_AUTO_UPDATE") == "1":
+    if os.environ.get("FUGAKU_AUTO_UPDATE") == "1" and updater.install_kind() != "git":
+        # update.sh は git クローン専用（プラグインのキャッシュ等では動かない）
+        print(f"[fugaku-mcp] 自動更新は git クローンでのみ有効です。{updater.HOW_TO_UPDATE[updater.install_kind()]}",
+              file=sys.stderr)
+    elif os.environ.get("FUGAKU_AUTO_UPDATE") == "1":
         try:
             import subprocess
             r = subprocess.run(["bash", os.path.join(os.path.dirname(os.path.abspath(__file__)), "update.sh")],

@@ -41,6 +41,15 @@ jobs:
           python3 -m py_compile fugaku_api.py fugaku_mcp.py fugaku_policy.py fugaku_update.py test_client.py tests/*.py
           for f in *.sh tests/*.sh; do bash -n "$f"; done
 
+  manual-links:
+    name: 公式マニュアルのリンク切れ検査
+    # マニュアルの版上げで URL が変わると search_manual が黙って空振りする（2026-09 に実際に発生）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: search_manual / agent-guide が参照する URL の到達性
+        run: python3 tests/check_manual_links.py
+
   smoke:
     name: smoke (${{ matrix.os }}, py${{ matrix.python }}, mcp ${{ matrix.mcp }})
     runs-on: ${{ matrix.os }}

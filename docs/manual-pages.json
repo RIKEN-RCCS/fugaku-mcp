@@ -1,12 +1,12 @@
 {
   "guides": {
     "use": {
-      "ja": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-use-1.52/build/ja/",
-      "en": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-use-1.52/build/en/"
+      "ja": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-use-1.53/build/ja/",
+      "en": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-use-1.53/build/en/"
     },
     "lang": {
-      "ja": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.41/build/ja/",
-      "en": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.41/build/en/"
+      "ja": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.43/build/ja/",
+      "en": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/user-guide-lang-1.43/build/en/"
     },
     "spack": {
       "ja": "https://riken-rccs.github.io/fugaku-doc/docs/user-guide/sys-use/fugakuspackguide/build/ja/",

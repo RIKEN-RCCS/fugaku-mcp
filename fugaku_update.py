@@ -44,13 +44,29 @@ def _fetch_remote(timeout):
         return r.read().decode("utf-8", "replace").strip()
 
 
+def install_kind():
+    """導入方法を判定する。更新手順が導入方法ごとに異なるため（プラグインのキャッシュは git クローンではない）。"""
+    if os.environ.get("CLAUDE_PLUGIN_ROOT") or f"{os.sep}.claude{os.sep}plugins{os.sep}" in HERE:
+        return "plugin"
+    if os.path.isdir(os.path.join(HERE, ".git")):
+        return "git"
+    return "other"
+
+
+HOW_TO_UPDATE = {
+    "plugin": "ターミナルで `claude plugin update fugaku@fugaku-mcp` を実行（または Claude Code の /plugin 画面から更新）し、"
+              "Claude Code を再起動。",
+    "git": "リポジトリで ./update.sh を実行（または git pull --ff-only）。更新後はMCPクライアントを再起動。",
+    "other": f"最新版を取得し直してください: {REPO_URL}（git clone で導入すると ./update.sh で更新できます）",
+}
+
+
 def _result(cur, latest, cached=False):
     avail = bool(latest) and _vtuple(latest) > _vtuple(cur)
     return {
         "checked": True, "cached": cached, "current": cur, "latest": latest,
         "update_available": avail,
-        "how_to_update": ("リポジトリで ./update.sh を実行（または git pull）。更新後はMCPクライアントを再起動。"
-                          if avail else None),
+        "how_to_update": HOW_TO_UPDATE[install_kind()] if avail else None,
         "repo": REPO_URL,
     }
 

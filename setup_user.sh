@@ -10,7 +10,7 @@ P12="${1:?使い方: ./setup_user.sh <account>.p12 [out.pem]}"
 PEM="${2:-${P12%.p12}.pem}"
 
 echo "== 1) PKCS#12 → PEM 変換（インポートパスフレーズを入力）=="
-openssl pkcs12 -in "$P12" -nodes -out "$PEM"
+(umask 077; openssl pkcs12 -in "$P12" -nodes -out "$PEM")   # 秘密鍵を最初から本人のみ読める状態で作る
 chmod 600 "$PEM"
 echo "   作成: $PEM (権限600)"
 
@@ -29,7 +29,7 @@ echo "== 4) Python環境(venv)の準備 =="
 if [ ! -x "$REPO/.venv/bin/python" ]; then
   echo "   venv を作成し mcp を導入します..."
   python3 -m venv "$REPO/.venv"
-  "$REPO/.venv/bin/pip" -q install "mcp[cli]~=2.0"
+  "$REPO/.venv/bin/pip" -q install -r "$REPO/requirements.txt"
 fi
 echo "   OK: $REPO/.venv/bin/python"
 
